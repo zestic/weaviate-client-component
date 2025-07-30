@@ -119,3 +119,43 @@ try {
 }
 
 echo "\nAll examples completed successfully!\n";
+
+// Example 7: Using Factories
+echo "=== Using Factories ===\n";
+
+use Zestic\WeaviateClientComponent\Factory\AuthFactory;
+use Zestic\WeaviateClientComponent\Factory\ConnectionFactory;
+use Zestic\WeaviateClientComponent\Factory\WeaviateClientFactory;
+
+// Create factories
+$authFactory = new AuthFactory();
+$connectionFactory = new ConnectionFactory();
+$clientFactory = new WeaviateClientFactory($connectionFactory, $authFactory);
+
+// Create auth from configuration
+$authConfig = [
+    'type' => 'api_key',
+    'api_key' => 'factory-test-key',
+];
+$auth = $authFactory->createAuth($authConfig);
+echo "Factory-created auth type: " . $auth['type'] . "\n";
+
+// Create connection from configuration
+$connectionConfig = [
+    'host' => 'factory-host.example.com',
+    'port' => 8080,
+    'secure' => true,
+];
+$connection = $connectionFactory->createConnection($connectionConfig);
+echo "Factory-created connection URL: " . $connection['url'] . "\n";
+
+// Create convenience connections
+$localConn = $connectionFactory->createLocalConnection();
+$cloudConn = $connectionFactory->createCloudConnection('my-cluster.weaviate.network');
+$customConn = $connectionFactory->createCustomConnection('custom.example.com', 9200, true);
+
+echo "Local connection: " . $localConn['url'] . "\n";
+echo "Cloud connection: " . $cloudConn['url'] . "\n";
+echo "Custom connection: " . $customConn['url'] . "\n";
+
+echo "\nFactory examples completed!\n";

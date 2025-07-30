@@ -62,10 +62,10 @@
         "normalize-check": "@composer normalize --dry-run",
         "phpstan": "phpstan analyse src test --level=8",
         "security-audit": "composer audit --format=table",
-        "test": "phpunit test/Unit",
+        "test": "phpunit",
         "test-all": "phpunit",
-        "test-coverage": "phpunit test/Unit --coverage-html coverage",
+        "test-coverage": "phpunit --coverage-html coverage",
         "test-integration": "phpunit test/Integration",
-        "test-unit": "phpunit test/Unit"
+        "test-unit": "phpunit test/Configuration test/Factory"
     }
 }
