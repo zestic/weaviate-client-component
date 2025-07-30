@@ -33,10 +33,13 @@ class ConnectionConfig
      */
     public static function fromArray(array $config): self
     {
+        // Default to secure for cloud connections (when cluster_url is provided)
+        $defaultSecure = isset($config['cluster_url']) ? true : self::DEFAULT_SECURE;
+
         return new self(
             host: $config['host'] ?? null,
             port: $config['port'] ?? self::DEFAULT_PORT,
-            secure: $config['secure'] ?? self::DEFAULT_SECURE,
+            secure: $config['secure'] ?? $defaultSecure,
             clusterUrl: $config['cluster_url'] ?? null,
             timeout: $config['timeout'] ?? 30,
             headers: $config['headers'] ?? []
@@ -145,7 +148,8 @@ class ConnectionConfig
         }
 
         $hostOnly = $this->getHostOnly();
-        return $hostOnly === 'localhost' || $hostOnly === '127.0.0.1' || $hostOnly === '::1';
+        // When host is null, it defaults to localhost
+        return $hostOnly === null || $hostOnly === 'localhost' || $hostOnly === '127.0.0.1' || $hostOnly === '::1';
     }
 
     /**

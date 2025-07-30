@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Zestic\WeaviateClientComponent\Test\Factory;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Weaviate\WeaviateClient;
 use Zestic\WeaviateClientComponent\Exception\ConfigurationException;
 use Zestic\WeaviateClientComponent\Factory\WeaviateClientAbstractFactory;
 use Zestic\WeaviateClientComponent\Factory\WeaviateClientFactory;
@@ -13,7 +15,7 @@ use Zestic\WeaviateClientComponent\Factory\WeaviateClientFactory;
 class WeaviateClientAbstractFactoryTest extends TestCase
 {
     private WeaviateClientAbstractFactory $factory;
-    private WeaviateClientFactory $clientFactory;
+    private WeaviateClientFactory&MockObject $clientFactory;
 
     protected function setUp(): void
     {
@@ -24,7 +26,7 @@ class WeaviateClientAbstractFactoryTest extends TestCase
     public function testCanCreateWithValidClientService(): void
     {
         $container = $this->createMock(ContainerInterface::class);
-        
+
         $this->clientFactory
             ->expects($this->once())
             ->method('hasClient')
@@ -48,7 +50,7 @@ class WeaviateClientAbstractFactoryTest extends TestCase
     public function testCanCreateWithNonexistentClient(): void
     {
         $container = $this->createMock(ContainerInterface::class);
-        
+
         $this->clientFactory
             ->expects($this->once())
             ->method('hasClient')
@@ -63,7 +65,7 @@ class WeaviateClientAbstractFactoryTest extends TestCase
     public function testInvokeWithValidClient(): void
     {
         $container = $this->createMock(ContainerInterface::class);
-        $expectedClient = ['type' => 'local', 'connection' => []];
+        $expectedClient = $this->createMock(WeaviateClient::class);
 
         $this->clientFactory
             ->expects($this->once())
@@ -79,7 +81,7 @@ class WeaviateClientAbstractFactoryTest extends TestCase
 
         $result = $this->factory->__invoke($container, 'weaviate.client.test-client');
 
-        $this->assertEquals($expectedClient, $result);
+        $this->assertSame($expectedClient, $result);
     }
 
     public function testInvokeWithInvalidClient(): void
@@ -137,7 +139,7 @@ class WeaviateClientAbstractFactoryTest extends TestCase
     public function testCreateClientService(): void
     {
         $container = $this->createMock(ContainerInterface::class);
-        $expectedClient = ['type' => 'local', 'connection' => []];
+        $expectedClient = $this->createMock(WeaviateClient::class);
 
         $this->clientFactory
             ->expects($this->once())
@@ -153,7 +155,8 @@ class WeaviateClientAbstractFactoryTest extends TestCase
 
         $result = $this->factory->createClientService($container, 'test-client');
 
-        $this->assertEquals($expectedClient, $result);
+        $this->assertSame($expectedClient, $result);
+        $this->assertInstanceOf(WeaviateClient::class, $result);
     }
 
     public function testGetServiceName(): void
@@ -263,7 +266,7 @@ class WeaviateClientAbstractFactoryTest extends TestCase
     public function testInvokeWithOptions(): void
     {
         $container = $this->createMock(ContainerInterface::class);
-        $expectedClient = ['type' => 'local', 'connection' => []];
+        $expectedClient = $this->createMock(WeaviateClient::class);
         $options = ['some' => 'options'];
 
         $this->clientFactory
@@ -280,6 +283,6 @@ class WeaviateClientAbstractFactoryTest extends TestCase
 
         $result = $this->factory->__invoke($container, 'weaviate.client.test-client', $options);
 
-        $this->assertEquals($expectedClient, $result);
+        $this->assertSame($expectedClient, $result);
     }
 }

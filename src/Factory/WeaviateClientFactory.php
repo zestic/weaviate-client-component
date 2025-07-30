@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Zestic\WeaviateClientComponent\Factory;
 
 use Psr\Container\ContainerInterface;
+use Weaviate\WeaviateClient;
 use Zestic\WeaviateClientComponent\Configuration\WeaviateConfig;
 use Zestic\WeaviateClientComponent\Exception\ConfigurationException;
 
@@ -22,7 +23,7 @@ class WeaviateClientFactory
     /**
      * Create the default WeaviateClient instance.
      */
-    public function __invoke(ContainerInterface $container): array
+    public function __invoke(ContainerInterface $container): WeaviateClient
     {
         return $this->createClient($container, 'default');
     }
@@ -30,14 +31,14 @@ class WeaviateClientFactory
     /**
      * Create a WeaviateClient instance for a specific named client.
      */
-    public function createClient(ContainerInterface $container, string $name = 'default'): array
+    public function createClient(ContainerInterface $container, string $name = 'default'): WeaviateClient
     {
         $config = $container->get('config');
         $weaviateConfig = $config['weaviate'] ?? [];
 
         // Get client-specific configuration
         $clientConfig = $this->getClientConfig($weaviateConfig, $name);
-        
+
         // Create WeaviateConfig object for validation
         $weaviateConfigObj = WeaviateConfig::fromArray($clientConfig);
 
@@ -74,25 +75,25 @@ class WeaviateClientFactory
     /**
      * Create local WeaviateClient instance.
      */
-    private function createLocalClient(array $config): array
+    private function createLocalClient(array $config): WeaviateClient
     {
-        $connection = $this->connectionFactory->createConnection($config['connection'] ?? []);
+        $connectionConfig = $this->connectionFactory->createConnection($config['connection'] ?? []);
         $auth = isset($config['auth']) ? $this->authFactory->createAuth($config['auth']) : null;
 
-        return [
-            'type' => 'local',
-            'connection' => $connection,
-            'auth' => $auth,
-            'additional_headers' => $config['additional_headers'] ?? [],
-            'enable_retry' => $config['enable_retry'] ?? true,
-            'max_retries' => $config['max_retries'] ?? WeaviateConfig::DEFAULT_MAX_RETRIES,
-        ];
+        // Extract host from the connection URL
+        $url = $connectionConfig['url'];
+        $parsedUrl = parse_url($url);
+        $host = $parsedUrl['host'] ?? 'localhost';
+        $port = $parsedUrl['port'] ?? 8080;
+        $hostWithPort = $port !== 80 && $port !== 443 ? "{$host}:{$port}" : $host;
+
+        return WeaviateClient::connectToLocal($hostWithPort, $auth);
     }
 
     /**
      * Create cloud WeaviateClient instance.
      */
-    private function createCloudClient(array $config): array
+    private function createCloudClient(array $config): WeaviateClient
     {
         if (!isset($config['connection']['cluster_url'])) {
             throw ConfigurationException::missingRequiredConfig('cluster_url', 'cloud connection');
@@ -102,39 +103,33 @@ class WeaviateClientFactory
             throw ConfigurationException::missingRequiredConfig('auth', 'cloud connection');
         }
 
-        $connection = $this->connectionFactory->createConnection($config['connection']);
+        $clusterUrl = $config['connection']['cluster_url'];
         $auth = $this->authFactory->createAuth($config['auth']);
 
-        return [
-            'type' => 'cloud',
-            'connection' => $connection,
-            'auth' => $auth,
-            'additional_headers' => $config['additional_headers'] ?? [],
-            'enable_retry' => $config['enable_retry'] ?? true,
-            'max_retries' => $config['max_retries'] ?? WeaviateConfig::DEFAULT_MAX_RETRIES,
-        ];
+        if ($auth === null) {
+            throw ConfigurationException::missingRequiredConfig('auth', 'cloud connection');
+        }
+
+        return WeaviateClient::connectToWeaviateCloud($clusterUrl, $auth);
     }
 
     /**
      * Create custom WeaviateClient instance.
      */
-    private function createCustomClient(array $config): array
+    private function createCustomClient(array $config): WeaviateClient
     {
         if (!isset($config['connection']['host'])) {
             throw ConfigurationException::missingRequiredConfig('host', 'custom connection');
         }
 
-        $connection = $this->connectionFactory->createConnection($config['connection']);
         $auth = isset($config['auth']) ? $this->authFactory->createAuth($config['auth']) : null;
 
-        return [
-            'type' => 'custom',
-            'connection' => $connection,
-            'auth' => $auth,
-            'additional_headers' => $config['additional_headers'] ?? [],
-            'enable_retry' => $config['enable_retry'] ?? true,
-            'max_retries' => $config['max_retries'] ?? WeaviateConfig::DEFAULT_MAX_RETRIES,
-        ];
+        $host = $config['connection']['host'];
+        $port = $config['connection']['port'] ?? 8080;
+        $secure = $config['connection']['secure'] ?? false;
+        $headers = $config['additional_headers'] ?? [];
+
+        return WeaviateClient::connectToCustom($host, $port, $secure, $auth, $headers);
     }
 
     /**
@@ -149,8 +144,8 @@ class WeaviateClientFactory
 
         // Create clients from 'clients' configuration
         if (isset($weaviateConfig['clients'])) {
-            foreach ($weaviateConfig['clients'] as $name => $clientConfig) {
-                $clients[$name] = $this->createClient($container, $name);
+            foreach (array_keys($weaviateConfig['clients']) as $name) {
+                $clients[$name] = $this->createClient($container, (string) $name);
             }
         } else {
             // Create default client from root configuration

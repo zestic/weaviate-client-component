@@ -6,28 +6,32 @@ namespace Zestic\WeaviateClientComponent\Test\Integration\Factory;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Weaviate\WeaviateClient;
+use Zestic\WeaviateClientComponent\Factory\AuthFactory;
 use Zestic\WeaviateClientComponent\Factory\ConnectionFactory;
 use Zestic\WeaviateClientComponent\Factory\WeaviateClientFactory;
 
 /**
  * Integration tests that verify factory-created configurations work with real Weaviate instances.
- * 
+ *
  * These tests require a running Weaviate instance (typically provided by CI with Docker).
  */
 class WeaviateConnectionIntegrationTest extends TestCase
 {
     private ConnectionFactory $connectionFactory;
+    private AuthFactory $authFactory;
     private WeaviateClientFactory $clientFactory;
     private string $weaviateUrl;
 
     protected function setUp(): void
     {
         $this->connectionFactory = new ConnectionFactory();
-        $this->clientFactory = new WeaviateClientFactory($this->connectionFactory);
-        
-        // Get Weaviate URL from environment or use default
-        $this->weaviateUrl = $_ENV['WEAVIATE_URL'] ?? 'http://localhost:8080';
-        
+        $this->authFactory = new AuthFactory();
+        $this->clientFactory = new WeaviateClientFactory($this->connectionFactory, $this->authFactory);
+
+        // Get Weaviate URL from environment or use Docker default
+        $this->weaviateUrl = $_ENV['WEAVIATE_URL'] ?? 'http://localhost:18080';
+
         // Skip tests if Weaviate is not available
         if (!$this->isWeaviateAvailable()) {
             $this->markTestSkipped('Weaviate instance not available at ' . $this->weaviateUrl);
@@ -58,12 +62,15 @@ class WeaviateConnectionIntegrationTest extends TestCase
 
     public function testClientFactoryWithRealWeaviate(): void
     {
+        // Use the Docker port for testing
+        $port = parse_url($this->weaviateUrl)['port'] ?? 8080;
+
         $config = [
             'weaviate' => [
                 'connection_method' => 'local',
                 'connection' => [
                     'host' => 'localhost',
-                    'port' => 8080,
+                    'port' => $port,
                     'secure' => false,
                 ],
                 'enable_retry' => true,
@@ -74,21 +81,34 @@ class WeaviateConnectionIntegrationTest extends TestCase
         $container = $this->createContainer($config);
         $client = $this->clientFactory->createClient($container, 'default');
 
-        // Verify client configuration
-        $this->assertEquals('local', $client['type']);
-        $this->assertEquals('http://localhost:8080', $client['connection']['url']);
-        $this->assertTrue($client['enable_retry']);
-        $this->assertEquals(2, $client['max_retries']);
+        // Verify we get a proper WeaviateClient object
+        $this->assertInstanceOf(WeaviateClient::class, $client);
 
-        // Test connection to Weaviate
-        $this->assertTrue($this->testHttpConnection($client['connection']['url']));
-        
-        // Test Weaviate-specific endpoints
-        $this->assertTrue($this->testWeaviateEndpoints($client['connection']['url']));
+        // Test that the client has the expected API methods
+        $this->assertTrue(method_exists($client, 'collections'));
+        $this->assertTrue(method_exists($client, 'schema'));
+
+        // Most importantly: Test that the client can actually connect to Weaviate
+        try {
+            $schema = $client->schema();
+            $schemaResult = $schema->get();
+            $this->assertIsArray($schemaResult);
+
+            // If we get here, the connection is working
+            $this->assertTrue(true, 'Successfully connected to Weaviate and retrieved schema');
+        } catch (\Exception $e) {
+            $this->fail('Failed to connect to Weaviate: ' . $e->getMessage());
+        }
+
+        // Test basic HTTP connection to the same URL
+        $this->assertTrue($this->testHttpConnection($this->weaviateUrl));
     }
 
     public function testMultipleEnvironmentClients(): void
     {
+        // Use the Docker port for testing
+        $port = parse_url($this->weaviateUrl)['port'] ?? 8080;
+
         $config = [
             'weaviate' => [
                 'clients' => [
@@ -96,14 +116,14 @@ class WeaviateConnectionIntegrationTest extends TestCase
                         'connection_method' => 'local',
                         'connection' => [
                             'host' => 'localhost',
-                            'port' => 8080,
+                            'port' => $port,
                         ],
                     ],
                     'local-alt-port' => [
                         'connection_method' => 'custom',
                         'connection' => [
                             'host' => 'localhost',
-                            'port' => 8080, // Same port for testing
+                            'port' => $port, // Same port for testing
                         ],
                     ],
                 ],
@@ -116,12 +136,29 @@ class WeaviateConnectionIntegrationTest extends TestCase
         $client1 = $this->clientFactory->createClient($container, 'local-test');
         $client2 = $this->clientFactory->createClient($container, 'local-alt-port');
 
-        $this->assertEquals('local', $client1['type']);
-        $this->assertEquals('custom', $client2['type']);
+        // Verify both are proper WeaviateClient objects
+        $this->assertInstanceOf(WeaviateClient::class, $client1);
+        $this->assertInstanceOf(WeaviateClient::class, $client2);
 
-        // Both should connect to the same Weaviate instance
-        $this->assertTrue($this->testHttpConnection($client1['connection']['url']));
-        $this->assertTrue($this->testHttpConnection($client2['connection']['url']));
+        // Test that both clients can actually connect to Weaviate
+        try {
+            // Test client1
+            $schema1 = $client1->schema();
+            $result1 = $schema1->get();
+            $this->assertIsArray($result1);
+
+            // Test client2
+            $schema2 = $client2->schema();
+            $result2 = $schema2->get();
+            $this->assertIsArray($result2);
+
+            $this->assertTrue(true, 'Both clients successfully connected to Weaviate');
+        } catch (\Exception $e) {
+            $this->fail('Failed to connect to Weaviate with one or both clients: ' . $e->getMessage());
+        }
+
+        // Both should connect to the same Weaviate instance via HTTP
+        $this->assertTrue($this->testHttpConnection($this->weaviateUrl));
     }
 
     public function testConnectionValidation(): void
@@ -195,7 +232,7 @@ class WeaviateConnectionIntegrationTest extends TestCase
      */
     private function isWeaviateAvailable(): bool
     {
-        return $this->testHttpConnection($this->weaviateUrl);
+        return $this->testWeaviateEndpoints($this->weaviateUrl);
     }
 
     /**
@@ -210,8 +247,14 @@ class WeaviateConnectionIntegrationTest extends TestCase
             ],
         ]);
 
-        $result = @file_get_contents($url . '/v1/.well-known/ready', false, $context);
-        
+        // If the URL already contains a path (like /v1/meta), use it as-is
+        // Otherwise, append the ready endpoint
+        $testUrl = (strpos($url, '/v1/') !== false && strpos($url, '/v1/.well-known/ready') === false)
+            ? $url
+            : $url . '/v1/.well-known/ready';
+
+        $result = @file_get_contents($testUrl, false, $context);
+
         return $result !== false;
     }
 

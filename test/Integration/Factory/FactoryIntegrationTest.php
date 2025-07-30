@@ -6,6 +6,8 @@ namespace Zestic\WeaviateClientComponent\Test\Integration\Factory;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Weaviate\WeaviateClient;
+use Weaviate\Auth\ApiKey;
 use Zestic\WeaviateClientComponent\Factory\AuthFactory;
 use Zestic\WeaviateClientComponent\Factory\ConnectionFactory;
 use Zestic\WeaviateClientComponent\Factory\WeaviateClientAbstractFactory;
@@ -17,6 +19,7 @@ class FactoryIntegrationTest extends TestCase
     private ConnectionFactory $connectionFactory;
     private WeaviateClientFactory $clientFactory;
     private WeaviateClientAbstractFactory $abstractFactory;
+    private string $weaviateUrl;
 
     protected function setUp(): void
     {
@@ -24,160 +27,146 @@ class FactoryIntegrationTest extends TestCase
         $this->connectionFactory = new ConnectionFactory();
         $this->clientFactory = new WeaviateClientFactory($this->connectionFactory, $this->authFactory);
         $this->abstractFactory = new WeaviateClientAbstractFactory($this->clientFactory);
+
+        // Get Weaviate URL from environment or use Docker default
+        $this->weaviateUrl = $_ENV['WEAVIATE_URL'] ?? 'http://localhost:18080';
+
+        // Skip tests if Weaviate is not available
+        if (!$this->isWeaviateAvailable()) {
+            $this->markTestSkipped('Weaviate instance not available at ' . $this->weaviateUrl);
+        }
     }
 
     public function testCompleteLocalClientCreation(): void
     {
+        // Parse the Docker port from the URL (18080 for Docker, 8080 for direct)
+        $parsedUrl = parse_url($this->weaviateUrl);
+        $port = $parsedUrl['port'] ?? 8080;
+
         $config = [
             'weaviate' => [
                 'connection_method' => 'local',
                 'connection' => [
                     'host' => 'localhost',
-                    'port' => 8080,
+                    'port' => $port,
                     'secure' => false,
                     'timeout' => 30,
                 ],
-                'auth' => [
-                    'type' => 'api_key',
-                    'api_key' => 'test-local-key',
-                ],
-                'additional_headers' => [
-                    'X-Custom-Header' => 'local-value',
-                ],
-                'enable_retry' => true,
-                'max_retries' => 3,
+                // No auth needed for Docker container with anonymous access
             ],
         ];
 
         $container = $this->createContainer($config);
         $client = $this->clientFactory->createClient($container, 'default');
 
-        // Verify client structure
-        $this->assertEquals('local', $client['type']);
-        $this->assertTrue($client['enable_retry']);
-        $this->assertEquals(3, $client['max_retries']);
-        $this->assertEquals(['X-Custom-Header' => 'local-value'], $client['additional_headers']);
+        // Test that we get a proper WeaviateClient instance
+        $this->assertInstanceOf(WeaviateClient::class, $client);
 
-        // Verify connection
-        $connection = $client['connection'];
-        $this->assertEquals('http://localhost:8080', $connection['url']);
-        $this->assertEquals('localhost', $connection['host']);
-        $this->assertEquals(8080, $connection['port']);
-        $this->assertFalse($connection['secure']);
-        $this->assertEquals(30, $connection['timeout']);
-        $this->assertTrue($connection['is_local']);
-        $this->assertFalse($connection['is_cloud']);
+        // Test that the client has the expected Weaviate API methods
+        $this->assertTrue(method_exists($client, 'collections'));
+        $this->assertTrue(method_exists($client, 'schema'));
+        $this->assertTrue(method_exists($client, 'getAuth'));
 
-        // Verify auth
-        $auth = $client['auth'];
-        $this->assertEquals('api_key', $auth['type']);
-        $this->assertEquals('test-local-key', $auth['api_key']);
-        $this->assertEquals(['Authorization' => 'Bearer test-local-key'], $auth['headers']);
+        // Test that we can get API objects without errors
+        $collections = $client->collections();
+        $schema = $client->schema();
+        $auth = $client->getAuth();
+
+        $this->assertInstanceOf(\Weaviate\Collections\Collections::class, $collections);
+        $this->assertInstanceOf(\Weaviate\Schema\Schema::class, $schema);
+        // Auth should be null since we didn't configure any
+        $this->assertNull($auth);
+
+        // MOST IMPORTANT: Test that we can actually make requests to Weaviate
+        try {
+            // Try to get schema - this will make an actual HTTP request
+            $schemaResult = $schema->get();
+            $this->assertIsArray($schemaResult);
+        } catch (\Exception $e) {
+            $this->fail('Failed to connect to Weaviate: ' . $e->getMessage());
+        }
     }
 
-    public function testCompleteCloudClientCreation(): void
+    public function testCloudClientCreation(): void
     {
+        // This test verifies that cloud clients can be created properly
+        // Note: This won't actually connect to Weaviate Cloud, just tests object creation
         $config = [
             'weaviate' => [
                 'connection_method' => 'cloud',
                 'connection' => [
                     'cluster_url' => 'my-test-cluster.weaviate.network',
-                    'secure' => true,
-                    'timeout' => 60,
                 ],
                 'auth' => [
                     'type' => 'api_key',
                     'api_key' => 'wcd-api-key-12345',
                 ],
-                'additional_headers' => [
-                    'X-OpenAI-Api-Key' => 'openai-key-67890',
-                    'X-Cohere-Api-Key' => 'cohere-key-abcdef',
-                ],
             ],
         ];
 
         $container = $this->createContainer($config);
         $client = $this->clientFactory->createClient($container, 'default');
 
-        // Verify client structure
-        $this->assertEquals('cloud', $client['type']);
-        $this->assertTrue($client['enable_retry']);
-        $this->assertEquals(4, $client['max_retries']); // Default value
+        // Test that we get a proper WeaviateClient instance for cloud
+        $this->assertInstanceOf(WeaviateClient::class, $client);
 
-        // Verify connection
-        $connection = $client['connection'];
-        $this->assertEquals('https://my-test-cluster.weaviate.network', $connection['url']);
-        $this->assertEquals('my-test-cluster.weaviate.network', $connection['cluster_url']);
-        $this->assertTrue($connection['secure']);
-        $this->assertEquals(60, $connection['timeout']);
-        $this->assertFalse($connection['is_local']);
-        $this->assertTrue($connection['is_cloud']);
+        // Test that the client has the expected Weaviate API methods
+        $this->assertTrue(method_exists($client, 'collections'));
+        $this->assertTrue(method_exists($client, 'schema'));
+        $this->assertTrue(method_exists($client, 'getAuth'));
 
-        // Verify auth
-        $auth = $client['auth'];
-        $this->assertEquals('api_key', $auth['type']);
-        $this->assertEquals('wcd-api-key-12345', $auth['api_key']);
-        $this->assertEquals(['Authorization' => 'Bearer wcd-api-key-12345'], $auth['headers']);
-
-        // Verify additional headers
-        $expectedHeaders = [
-            'X-OpenAI-Api-Key' => 'openai-key-67890',
-            'X-Cohere-Api-Key' => 'cohere-key-abcdef',
-        ];
-        $this->assertEquals($expectedHeaders, $client['additional_headers']);
+        // Test that auth is properly configured for cloud
+        $auth = $client->getAuth();
+        $this->assertInstanceOf(ApiKey::class, $auth);
+        $this->assertNotNull($auth);
     }
 
-    public function testCompleteCustomClientCreation(): void
+    public function testCustomClientCreation(): void
     {
+        // Test custom client creation (using localhost for testing)
+        $parsedUrl = parse_url($this->weaviateUrl);
+        $port = $parsedUrl['port'] ?? 8080;
+
         $config = [
             'weaviate' => [
                 'connection_method' => 'custom',
                 'connection' => [
-                    'host' => 'my-custom-weaviate.example.com',
-                    'port' => 9200,
-                    'secure' => true,
-                    'timeout' => 45,
-                    'headers' => [
-                        'X-Custom-Connection-Header' => 'connection-value',
-                    ],
+                    'host' => 'localhost',
+                    'port' => $port,
+                    'secure' => false,
+                    'timeout' => 30,
                 ],
                 'auth' => [
                     'type' => 'bearer_token',
-                    'bearer_token' => 'custom-bearer-token-xyz',
+                    'bearer_token' => 'test-bearer-token',
                 ],
-                'enable_retry' => false,
-                'max_retries' => 0,
             ],
         ];
 
         $container = $this->createContainer($config);
         $client = $this->clientFactory->createClient($container, 'default');
 
-        // Verify client structure
-        $this->assertEquals('custom', $client['type']);
-        $this->assertFalse($client['enable_retry']);
-        $this->assertEquals(0, $client['max_retries']);
+        // Test that we get a proper WeaviateClient instance
+        $this->assertInstanceOf(WeaviateClient::class, $client);
 
-        // Verify connection
-        $connection = $client['connection'];
-        $this->assertEquals('https://my-custom-weaviate.example.com:9200', $connection['url']);
-        $this->assertEquals('my-custom-weaviate.example.com', $connection['host']);
-        $this->assertEquals(9200, $connection['port']);
-        $this->assertTrue($connection['secure']);
-        $this->assertEquals(45, $connection['timeout']);
-        $this->assertEquals(['X-Custom-Connection-Header' => 'connection-value'], $connection['headers']);
-        $this->assertFalse($connection['is_local']);
-        $this->assertFalse($connection['is_cloud']);
+        // Test that auth is properly configured
+        $auth = $client->getAuth();
+        $this->assertInstanceOf(ApiKey::class, $auth); // Bearer token uses ApiKey class
+        $this->assertNotNull($auth);
 
-        // Verify auth
-        $auth = $client['auth'];
-        $this->assertEquals('bearer_token', $auth['type']);
-        $this->assertEquals('custom-bearer-token-xyz', $auth['bearer_token']);
-        $this->assertEquals(['Authorization' => 'Bearer custom-bearer-token-xyz'], $auth['headers']);
+        // Test that we can get API objects
+        $collections = $client->collections();
+        $schema = $client->schema();
+
+        $this->assertInstanceOf(\Weaviate\Collections\Collections::class, $collections);
+        $this->assertInstanceOf(\Weaviate\Schema\Schema::class, $schema);
     }
 
     public function testMultipleNamedClients(): void
     {
+        $parsedUrl = parse_url($this->weaviateUrl);
+        $port = $parsedUrl['port'] ?? 8080;
+
         $config = [
             'weaviate' => [
                 'clients' => [
@@ -185,34 +174,18 @@ class FactoryIntegrationTest extends TestCase
                         'connection_method' => 'local',
                         'connection' => [
                             'host' => 'localhost',
-                            'port' => 8080,
-                        ],
-                        'auth' => [
-                            'type' => 'api_key',
-                            'api_key' => 'dev-key',
+                            'port' => $port,
                         ],
                     ],
-                    'staging' => [
-                        'connection_method' => 'cloud',
+                    'local-test' => [
+                        'connection_method' => 'custom',
                         'connection' => [
-                            'cluster_url' => 'staging-cluster.weaviate.network',
+                            'host' => 'localhost',
+                            'port' => $port,
                         ],
                         'auth' => [
                             'type' => 'api_key',
-                            'api_key' => 'staging-key',
-                        ],
-                    ],
-                    'production' => [
-                        'connection_method' => 'cloud',
-                        'connection' => [
-                            'cluster_url' => 'prod-cluster.weaviate.network',
-                        ],
-                        'auth' => [
-                            'type' => 'api_key',
-                            'api_key' => 'prod-key',
-                        ],
-                        'additional_headers' => [
-                            'X-Environment' => 'production',
+                            'api_key' => 'test-key',
                         ],
                     ],
                 ],
@@ -223,39 +196,37 @@ class FactoryIntegrationTest extends TestCase
 
         // Test individual client creation
         $localClient = $this->clientFactory->createClient($container, 'local-dev');
-        $stagingClient = $this->clientFactory->createClient($container, 'staging');
-        $prodClient = $this->clientFactory->createClient($container, 'production');
+        $testClient = $this->clientFactory->createClient($container, 'local-test');
 
-        // Verify local client
-        $this->assertEquals('local', $localClient['type']);
-        $this->assertEquals('http://localhost:8080', $localClient['connection']['url']);
-        $this->assertEquals('dev-key', $localClient['auth']['api_key']);
+        // Verify both are proper WeaviateClient instances
+        $this->assertInstanceOf(WeaviateClient::class, $localClient);
+        $this->assertInstanceOf(WeaviateClient::class, $testClient);
 
-        // Verify staging client
-        $this->assertEquals('cloud', $stagingClient['type']);
-        $this->assertEquals('https://staging-cluster.weaviate.network', $stagingClient['connection']['url']);
-        $this->assertEquals('staging-key', $stagingClient['auth']['api_key']);
-
-        // Verify production client
-        $this->assertEquals('cloud', $prodClient['type']);
-        $this->assertEquals('https://prod-cluster.weaviate.network', $prodClient['connection']['url']);
-        $this->assertEquals('prod-key', $prodClient['auth']['api_key']);
-        $this->assertEquals(['X-Environment' => 'production'], $prodClient['additional_headers']);
+        // Verify auth configuration differences
+        $this->assertNull($localClient->getAuth()); // No auth configured
+        $this->assertInstanceOf(ApiKey::class, $testClient->getAuth()); // Auth configured
 
         // Test multiple clients creation
         $allClients = $this->clientFactory->createMultipleClients($container);
-        $this->assertCount(3, $allClients);
+        $this->assertCount(2, $allClients);
         $this->assertArrayHasKey('local-dev', $allClients);
-        $this->assertArrayHasKey('staging', $allClients);
-        $this->assertArrayHasKey('production', $allClients);
+        $this->assertArrayHasKey('local-test', $allClients);
+
+        // Verify all clients are WeaviateClient instances
+        foreach ($allClients as $client) {
+            $this->assertInstanceOf(WeaviateClient::class, $client);
+        }
 
         // Test client names
         $clientNames = $this->clientFactory->getConfiguredClientNames($container);
-        $this->assertEquals(['local-dev', 'staging', 'production'], $clientNames);
+        $this->assertEquals(['local-dev', 'local-test'], $clientNames);
     }
 
     public function testAbstractFactoryIntegration(): void
     {
+        $parsedUrl = parse_url($this->weaviateUrl);
+        $port = $parsedUrl['port'] ?? 8080;
+
         $config = [
             'weaviate' => [
                 'clients' => [
@@ -263,10 +234,7 @@ class FactoryIntegrationTest extends TestCase
                         'connection_method' => 'local',
                         'connection' => [
                             'host' => 'localhost',
-                        ],
-                        'auth' => [
-                            'type' => 'api_key',
-                            'api_key' => 'test-key',
+                            'port' => $port,
                         ],
                     ],
                 ],
@@ -282,8 +250,7 @@ class FactoryIntegrationTest extends TestCase
 
         // Test client creation through abstract factory
         $client = $this->abstractFactory->__invoke($container, 'weaviate.client.test-client');
-        $this->assertEquals('local', $client['type']);
-        $this->assertEquals('test-key', $client['auth']['api_key']);
+        $this->assertInstanceOf(WeaviateClient::class, $client);
 
         // Test service names
         $serviceNames = $this->abstractFactory->getCreatableServiceNames($container);
@@ -303,5 +270,21 @@ class FactoryIntegrationTest extends TestCase
             ->willReturn($config);
 
         return $container;
+    }
+
+    /**
+     * Check if Weaviate is available for testing.
+     */
+    private function isWeaviateAvailable(): bool
+    {
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 5,
+                'method' => 'GET',
+            ],
+        ]);
+
+        $result = @file_get_contents($this->weaviateUrl . '/v1/.well-known/ready', false, $context);
+        return $result !== false;
     }
 }

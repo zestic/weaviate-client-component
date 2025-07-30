@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Zestic\WeaviateClientComponent\Factory;
 
 use Psr\Container\ContainerInterface;
+use Weaviate\Auth\ApiKey;
+use Weaviate\Auth\AuthInterface;
 use Zestic\WeaviateClientComponent\Configuration\AuthConfig;
 use Zestic\WeaviateClientComponent\Exception\ConfigurationException;
 
@@ -16,7 +18,7 @@ class AuthFactory
     /**
      * Create authentication object from container configuration.
      */
-    public function __invoke(ContainerInterface $container): mixed
+    public function __invoke(ContainerInterface $container): ?AuthInterface
     {
         $config = $container->get('config');
         $weaviateConfig = $config['weaviate'] ?? [];
@@ -31,7 +33,7 @@ class AuthFactory
     /**
      * Create authentication object from configuration array.
      */
-    public function createAuth(array $authConfig): mixed
+    public function createAuth(array $authConfig): ?AuthInterface
     {
         $authConfigObj = AuthConfig::fromArray($authConfig);
 
@@ -49,49 +51,46 @@ class AuthFactory
     /**
      * Create API key authentication.
      */
-    private function createApiKeyAuth(AuthConfig $config): array
+    private function createApiKeyAuth(AuthConfig $config): ApiKey
     {
-        return [
-            'type' => 'api_key',
-            'api_key' => $config->apiKey,
-            'headers' => [
-                'Authorization' => 'Bearer ' . $config->apiKey,
-            ],
-        ];
+        if ($config->apiKey === null) {
+            throw ConfigurationException::missingRequiredConfig('api_key', 'API key authentication');
+        }
+
+        return new ApiKey($config->apiKey);
     }
 
     /**
      * Create Bearer token authentication.
      */
-    private function createBearerTokenAuth(AuthConfig $config): array
+    private function createBearerTokenAuth(AuthConfig $config): AuthInterface
     {
-        return [
-            'type' => 'bearer_token',
-            'bearer_token' => $config->bearerToken,
-            'headers' => [
-                'Authorization' => 'Bearer ' . $config->bearerToken,
-            ],
-        ];
+        if ($config->bearerToken === null) {
+            throw ConfigurationException::missingRequiredConfig('bearer_token', 'Bearer token authentication');
+        }
+
+        // For now, use ApiKey for bearer tokens as they work the same way
+        return new ApiKey($config->bearerToken);
     }
 
     /**
      * Create OIDC authentication.
+     *
+     * @return never
      */
-    private function createOidcAuth(AuthConfig $config): array
+    private function createOidcAuth(AuthConfig $config): AuthInterface
     {
-        return [
-            'type' => 'oidc',
-            'client_id' => $config->clientId,
-            'client_secret' => $config->clientSecret,
-            'scope' => $config->scope,
-            'additional_params' => $config->additionalParams,
-        ];
+        // OIDC is not yet implemented in the Weaviate PHP client
+        throw ConfigurationException::invalidAuthType(
+            'oidc',
+            ['api_key', 'bearer_token']
+        );
     }
 
     /**
      * Create authentication for a specific named client.
      */
-    public function createAuthForClient(ContainerInterface $container, string $clientName): mixed
+    public function createAuthForClient(ContainerInterface $container, string $clientName): ?AuthInterface
     {
         $config = $container->get('config');
         $weaviateConfig = $config['weaviate'] ?? [];
@@ -126,11 +125,38 @@ class AuthFactory
 
     /**
      * Get authentication headers for HTTP requests.
+     *
+     * @deprecated This method is deprecated as auth objects now handle headers internally
      */
     public function getAuthHeaders(array $authConfig): array
     {
-        $auth = $this->createAuth($authConfig);
+        // This method is kept for backward compatibility but is deprecated
+        // Auth objects now handle headers internally via the apply() method
 
-        return $auth['headers'] ?? [];
+        try {
+            $auth = $this->createAuth($authConfig);
+
+            if ($auth === null) {
+                return [];
+            }
+
+            // Extract headers from auth objects for backward compatibility
+            if ($auth instanceof ApiKey) {
+                // We need to simulate what the ApiKey would do
+                // Since we can't access the private $apiKey property, we'll reconstruct it
+                if (isset($authConfig['api_key'])) {
+                    return ['Authorization' => 'Bearer ' . $authConfig['api_key']];
+                }
+                if (isset($authConfig['bearer_token'])) {
+                    return ['Authorization' => 'Bearer ' . $authConfig['bearer_token']];
+                }
+            }
+
+            return [];
+        } catch (ConfigurationException $e) {
+            // For unsupported auth types (like OIDC), return empty headers
+            // This maintains backward compatibility where unsupported types would return []
+            return [];
+        }
     }
 }

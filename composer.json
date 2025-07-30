@@ -26,6 +26,8 @@
     },
     "require": {
         "php": "^8.3",
+        "guzzlehttp/guzzle": "^7.9",
+        "guzzlehttp/psr7": "^2.7",
         "laminas/laminas-servicemanager": "^3.22",
         "psr/container": "^1.0",
         "zestic/weaviate-php-client": "^0.3.0"
@@ -58,7 +60,6 @@
     "scripts": {
         "cs-check": "phpcs src test --standard=PSR12",
         "cs-fix": "phpcbf src test --standard=PSR12",
-        "normalize": "@composer normalize",
         "normalize-check": "@composer normalize --dry-run",
         "phpstan": "phpstan analyse src test --level=8",
         "security-audit": "composer audit --format=table",
@@ -66,6 +67,10 @@
         "test-all": "phpunit",
         "test-coverage": "phpunit --coverage-html coverage",
         "test-integration": "phpunit test/Integration",
-        "test-unit": "phpunit test/Configuration test/Factory"
+        "test-unit": "phpunit test/Unit/Configuration test/Factory",
+        "weaviate:start": "./scripts/start-weaviate.sh",
+        "weaviate:stop": "./scripts/stop-weaviate.sh",
+        "test:with-weaviate": "./scripts/test-with-weaviate.sh",
+        "test:full": "./scripts/test-with-weaviate.sh"
     }
 }

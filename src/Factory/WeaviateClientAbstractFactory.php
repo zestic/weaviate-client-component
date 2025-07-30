@@ -10,7 +10,7 @@ use Zestic\WeaviateClientComponent\Exception\ConfigurationException;
 
 /**
  * Abstract factory for dynamic WeaviateClient creation.
- * 
+ *
  * Handles requests like 'weaviate.client.{name}' and creates the appropriate client instance.
  */
 class WeaviateClientAbstractFactory implements AbstractFactoryInterface
@@ -25,15 +25,20 @@ class WeaviateClientAbstractFactory implements AbstractFactoryInterface
     /**
      * Determine if this factory can create the requested service.
      */
-    public function canCreate(ContainerInterface $container, string $requestedName): bool
+    public function canCreate(ContainerInterface $container, $requestedName): bool
     {
+        // Ensure requestedName is a string
+        if (!is_string($requestedName)) {
+            return false;
+        }
+
         // Handle requests like 'weaviate.client.{name}'
         if (!str_starts_with($requestedName, self::CLIENT_PREFIX)) {
             return false;
         }
 
         $clientName = $this->extractClientName($requestedName);
-        
+
         // Check if client is configured
         return $this->clientFactory->hasClient($container, $clientName);
     }
@@ -43,15 +48,19 @@ class WeaviateClientAbstractFactory implements AbstractFactoryInterface
      */
     public function __invoke(
         ContainerInterface $container,
-        string $requestedName,
+        $requestedName,
         ?array $options = null
-    ): array {
+    ): object {
+        if (!is_string($requestedName)) {
+            throw new \InvalidArgumentException('Requested name must be a string');
+        }
+
         if (!$this->canCreate($container, $requestedName)) {
             throw ConfigurationException::clientNotFound($requestedName);
         }
 
         $clientName = $this->extractClientName($requestedName);
-        
+
         return $this->clientFactory->createClient($container, $clientName);
     }
 
@@ -69,7 +78,7 @@ class WeaviateClientAbstractFactory implements AbstractFactoryInterface
     public function getCreatableServiceNames(ContainerInterface $container): array
     {
         $clientNames = $this->clientFactory->getConfiguredClientNames($container);
-        
+
         return array_map(
             fn(string $name): string => self::CLIENT_PREFIX . $name,
             $clientNames
@@ -88,7 +97,7 @@ class WeaviateClientAbstractFactory implements AbstractFactoryInterface
     /**
      * Create a client service by client name (convenience method).
      */
-    public function createClientService(ContainerInterface $container, string $clientName): array
+    public function createClientService(ContainerInterface $container, string $clientName): object
     {
         $serviceName = self::CLIENT_PREFIX . $clientName;
         return $this->__invoke($container, $serviceName);
@@ -134,7 +143,7 @@ class WeaviateClientAbstractFactory implements AbstractFactoryInterface
 
         foreach ($clientNames as $clientName) {
             $serviceName = self::CLIENT_PREFIX . $clientName;
-            
+
             try {
                 $this->canCreate($container, $serviceName);
                 $results[$clientName] = ['valid' => true, 'error' => null];
@@ -156,7 +165,7 @@ class WeaviateClientAbstractFactory implements AbstractFactoryInterface
 
         foreach ($clientNames as $clientName) {
             $serviceName = self::CLIENT_PREFIX . $clientName;
-            
+
             $summary[$clientName] = [
                 'service_name' => $serviceName,
                 'can_create' => $this->canCreate($container, $serviceName),

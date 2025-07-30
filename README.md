@@ -1,6 +1,6 @@
 # Weaviate Client Component for Laminas
 
-[![Tests](https://github.com/zestic/weaviate-client-component/actions/workflows/tests.yml/badge.svg)](https://github.com/zestic/weaviate-client-component/actions/workflows/tests.yml)
+[![Tests](https://github.com/zestic/weaviate-client-component/actions/workflows/test.yml/badge.svg)](https://github.com/zestic/weaviate-client-component/actions/workflows/test.yml)
 [![Lint](https://github.com/zestic/weaviate-client-component/actions/workflows/lint.yml/badge.svg)](https://github.com/zestic/weaviate-client-component/actions/workflows/lint.yml)
 [![codecov](https://codecov.io/gh/zestic/weaviate-client-component/graph/badge.svg)](https://codecov.io/gh/zestic/weaviate-client-component)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.3-blue.svg)](https://php.net/)
@@ -45,11 +45,35 @@ cp vendor/zestic/weaviate-client-component/config/weaviate.global.php.dist confi
 
 4. Inject the WeaviateClient into your services
 
+## Testing
+
+This project includes comprehensive testing with both unit and integration tests:
+
+```bash
+# Run all tests (unit only, integration tests skipped without Weaviate)
+composer test
+
+# Run all tests including integration tests (recommended)
+composer test:with-weaviate
+
+# Run only unit tests
+composer test-unit
+
+# Run only integration tests (requires Weaviate)
+composer test-integration
+```
+
+**Test Coverage**: 148 tests total (136 unit + 12 integration)
+
+See [TESTING.md](TESTING.md) for detailed testing instructions.
+
 ## Documentation
 
 - [Installation Guide](docs/INSTALLATION.md)
 - [Configuration Reference](docs/CONFIGURATION.md)
 - [Usage Examples](docs/EXAMPLES.md)
+- [Testing Guide](TESTING.md)
+- [CI/CD Setup](docs/CI.md)
 
 ## Contributing
 
