@@ -17,7 +17,7 @@ use Zestic\WeaviateClientComponent\Factory\AuthFactory;
 
 /**
  * Integration test for ConfigProvider with Laminas ServiceManager.
- * 
+ *
  * Tests that the ConfigProvider properly integrates with the service container
  * and all services can be resolved correctly.
  */
@@ -31,7 +31,7 @@ class ConfigProviderIntegrationTest extends TestCase
     {
         $this->configProvider = new ConfigProvider();
         $this->weaviateUrl = $_ENV['WEAVIATE_URL'] ?? 'http://localhost:18080';
-        
+
         // Parse URL to get host and port
         $parsedUrl = parse_url($this->weaviateUrl);
         $host = $parsedUrl['host'] ?? 'localhost';
@@ -76,10 +76,10 @@ class ConfigProviderIntegrationTest extends TestCase
     public function testConfigProviderRegistersAllServices(): void
     {
         $config = ($this->configProvider)();
-        
+
         $this->assertArrayHasKey('dependencies', $config);
         $this->assertArrayHasKey('weaviate', $config);
-        
+
         $dependencies = $config['dependencies'];
         $this->assertArrayHasKey('factories', $dependencies);
         $this->assertArrayHasKey('aliases', $dependencies);
@@ -150,7 +150,7 @@ class ConfigProviderIntegrationTest extends TestCase
 
         $this->assertInstanceOf(WeaviateClient::class, $client1);
         $this->assertInstanceOf(WeaviateClient::class, $client2);
-        
+
         // They should be different instances
         $this->assertNotSame($client1, $client2);
     }
@@ -220,7 +220,7 @@ class ConfigProviderIntegrationTest extends TestCase
         }
 
         $client = $this->container->get(WeaviateClient::class);
-        
+
         // Test that we can actually connect to Weaviate
         $schema = $client->schema()->get();
         $this->assertIsArray($schema);
@@ -279,7 +279,7 @@ class ConfigProviderIntegrationTest extends TestCase
         // Test that the service manager properly caches instances
         $client1 = $this->container->get(WeaviateClient::class);
         $client2 = $this->container->get(WeaviateClient::class);
-        
+
         // Should be the same instance due to service manager caching
         $this->assertSame($client1, $client2);
 
@@ -302,7 +302,7 @@ class ConfigProviderIntegrationTest extends TestCase
                     'method' => 'GET',
                 ]
             ]);
-            
+
             $result = @file_get_contents($this->weaviateUrl . '/v1/meta', false, $context);
             return $result !== false;
         } catch (\Exception $e) {

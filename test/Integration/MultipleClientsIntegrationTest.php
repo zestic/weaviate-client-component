@@ -11,7 +11,7 @@ use Zestic\WeaviateClientComponent\ConfigProvider;
 
 /**
  * Integration test for multiple named Weaviate clients.
- * 
+ *
  * Tests that multiple clients can be configured and used simultaneously
  * without interfering with each other.
  */
@@ -24,7 +24,7 @@ class MultipleClientsIntegrationTest extends TestCase
     {
         // Get Weaviate URL from environment or use default
         $this->weaviateUrl = $_ENV['WEAVIATE_URL'] ?? 'http://localhost:18080';
-        
+
         // Parse URL to get host and port
         $parsedUrl = parse_url($this->weaviateUrl);
         $host = $parsedUrl['host'] ?? 'localhost';
@@ -177,7 +177,6 @@ class MultipleClientsIntegrationTest extends TestCase
             $this->assertArrayHasKey('id', $ragResult);
             $this->assertIsArray($customerResult);
             $this->assertArrayHasKey('id', $customerResult);
-
         } finally {
             // Cleanup
             if ($ragClient->collections()->exists($ragCollectionName)) {
@@ -232,7 +231,6 @@ class MultipleClientsIntegrationTest extends TestCase
 
             $this->assertIsArray($ragData);
             $this->assertIsArray($customerData);
-
         } finally {
             // Cleanup
             if ($ragClient->collections()->exists($ragCollectionName)) {
@@ -283,7 +281,7 @@ class MultipleClientsIntegrationTest extends TestCase
                     'method' => 'GET',
                 ]
             ]);
-            
+
             $result = @file_get_contents($this->weaviateUrl . '/v1/meta', false, $context);
             return $result !== false;
         } catch (\Exception $e) {

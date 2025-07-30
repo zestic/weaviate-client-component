@@ -11,7 +11,7 @@ use Zestic\WeaviateClientComponent\ConfigProvider;
 
 /**
  * Integration test for real Weaviate connections.
- * 
+ *
  * Tests that factory-created clients can perform actual operations
  * against a real Weaviate instance.
  */
@@ -23,7 +23,7 @@ class RealWeaviateConnectionTest extends TestCase
     protected function setUp(): void
     {
         $this->weaviateUrl = $_ENV['WEAVIATE_URL'] ?? 'http://localhost:18080';
-        
+
         // Parse URL to get host and port
         $parsedUrl = parse_url($this->weaviateUrl);
         $host = $parsedUrl['host'] ?? 'localhost';
@@ -131,7 +131,6 @@ class RealWeaviateConnectionTest extends TestCase
             // Verify deletion
             $this->expectException(\Exception::class);
             $collection->data()->get($objectId);
-
         } finally {
             // Cleanup collection
             if ($client->collections()->exists($collectionName)) {
@@ -191,7 +190,6 @@ class RealWeaviateConnectionTest extends TestCase
             $this->assertIsArray($queryResult);
             $this->assertArrayHasKey('data', $queryResult);
             $this->assertCount(2, $queryResult['data']); // Should find 2 Technology articles
-
         } finally {
             // Cleanup
             if ($client->collections()->exists($collectionName)) {
@@ -255,7 +253,6 @@ class RealWeaviateConnectionTest extends TestCase
             $propertyNames = array_column($ourCollection['properties'], 'name');
             $this->assertContains('title', $propertyNames);
             $this->assertContains('tags', $propertyNames);
-
         } finally {
             // Cleanup
             if ($client->collections()->exists($collectionName)) {
@@ -379,7 +376,7 @@ class RealWeaviateConnectionTest extends TestCase
                     'method' => 'GET',
                 ]
             ]);
-            
+
             $result = @file_get_contents($this->weaviateUrl . '/v1/meta', false, $context);
             return $result !== false;
         } catch (\Exception $e) {

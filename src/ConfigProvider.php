@@ -10,7 +10,7 @@ use Weaviate\Auth\AuthInterface;
 
 /**
  * Configuration provider for Weaviate Client Component.
- * 
+ *
  * Registers all services, factories, and aliases needed for Laminas/Mezzio integration.
  */
 class ConfigProvider
@@ -69,7 +69,7 @@ class ConfigProvider
             // Convenient aliases
             'WeaviateClient' => WeaviateClient::class,
             'weaviate.client' => 'weaviate.client.default',
-            
+
             // Factory aliases
             'weaviate.factory.client' => Factory\WeaviateClientFactory::class,
             'weaviate.factory.connection' => Factory\ConnectionFactory::class,
@@ -104,7 +104,7 @@ class ConfigProvider
             'enable_retry' => true,
             'max_retries' => 4,
             'additional_headers' => [],
-            
+
             // Example clients configuration (commented out by default)
             /*
             'clients' => [
@@ -159,11 +159,11 @@ class ConfigProvider
     public function getConfiguredClientNames(array $config): array
     {
         $weaviateConfig = $config['weaviate'] ?? [];
-        
+
         if (isset($weaviateConfig['clients'])) {
             return array_keys($weaviateConfig['clients']);
         }
-        
+
         // If no clients configuration, return default
         return ['default'];
     }
@@ -174,11 +174,11 @@ class ConfigProvider
     public function hasClient(array $config, string $clientName): bool
     {
         $weaviateConfig = $config['weaviate'] ?? [];
-        
+
         if (isset($weaviateConfig['clients'])) {
             return isset($weaviateConfig['clients'][$clientName]);
         }
-        
+
         // If no clients configuration, only 'default' is available
         return $clientName === 'default';
     }
@@ -190,17 +190,17 @@ class ConfigProvider
     {
         $clientNames = $this->getConfiguredClientNames($config);
         $serviceNames = [];
-        
+
         // Add core services
         $serviceNames[] = WeaviateClient::class;
         $serviceNames[] = 'WeaviateClient';
         $serviceNames[] = 'weaviate.client';
-        
+
         // Add named client services
         foreach ($clientNames as $clientName) {
             $serviceNames[] = "weaviate.client.{$clientName}";
         }
-        
+
         return $serviceNames;
     }
 
@@ -211,7 +211,7 @@ class ConfigProvider
     {
         $errors = [];
         $weaviateConfig = $config['weaviate'] ?? [];
-        
+
         // Validate clients configuration if present
         if (isset($weaviateConfig['clients'])) {
             foreach ($weaviateConfig['clients'] as $clientName => $clientConfig) {
@@ -219,13 +219,13 @@ class ConfigProvider
                     $errors[] = "Client '{$clientName}' configuration must be an array";
                     continue;
                 }
-                
+
                 // Validate connection method
                 $connectionMethod = $clientConfig['connection_method'] ?? 'local';
                 if (!in_array($connectionMethod, ['local', 'cloud', 'custom'], true)) {
                     $errors[] = "Client '{$clientName}' has invalid connection method: {$connectionMethod}";
                 }
-                
+
                 // Validate cloud connection requirements
                 if ($connectionMethod === 'cloud') {
                     if (!isset($clientConfig['connection']['cluster_url'])) {
@@ -235,7 +235,7 @@ class ConfigProvider
                         $errors[] = "Client '{$clientName}' cloud connection requires auth configuration";
                     }
                 }
-                
+
                 // Validate custom connection requirements
                 if ($connectionMethod === 'custom') {
                     if (!isset($clientConfig['connection']['host'])) {
@@ -244,7 +244,7 @@ class ConfigProvider
                 }
             }
         }
-        
+
         return $errors;
     }
 
@@ -255,7 +255,7 @@ class ConfigProvider
     {
         $weaviateConfig = $config['weaviate'] ?? [];
         $clientNames = $this->getConfiguredClientNames($config);
-        
+
         return [
             'has_weaviate_config' => !empty($weaviateConfig),
             'has_clients_config' => isset($weaviateConfig['clients']),
