@@ -68,9 +68,9 @@
         "test-coverage": "phpunit --coverage-html coverage",
         "test-integration": "phpunit test/Integration",
         "test-unit": "phpunit test/Unit/Configuration test/Factory",
-        "weaviate:start": "./scripts/start-weaviate.sh",
-        "weaviate:stop": "./scripts/stop-weaviate.sh",
+        "test:full": "./scripts/test-with-weaviate.sh",
         "test:with-weaviate": "./scripts/test-with-weaviate.sh",
-        "test:full": "./scripts/test-with-weaviate.sh"
+        "weaviate:start": "./scripts/start-weaviate.sh",
+        "weaviate:stop": "./scripts/stop-weaviate.sh"
     }
 }

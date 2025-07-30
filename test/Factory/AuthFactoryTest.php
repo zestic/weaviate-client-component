@@ -6,9 +6,6 @@ namespace Zestic\WeaviateClientComponent\Test\Factory;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
-use Psr\Http\Message\RequestInterface;
-use Weaviate\Auth\ApiKey;
-use Zestic\WeaviateClientComponent\Configuration\AuthConfig;
 use Zestic\WeaviateClientComponent\Exception\ConfigurationException;
 use Zestic\WeaviateClientComponent\Factory\AuthFactory;
 
