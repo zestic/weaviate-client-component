@@ -45,8 +45,8 @@ jobs:
       - name: Run PHPStan
         run: composer phpstan
 
-  php-cs-fixer:
-    name: PHP CS Fixer
+  code-style:
+    name: Code Style Check
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -77,10 +77,7 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Copy PHP CS Fixer config
-        run: cp php-cs-fixer.dist.php .php-cs-fixer.php
-
-      - name: Run PHP CS Fixer
+      - name: Run Code Style Check
         run: composer cs-check
 
   security:
