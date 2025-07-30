@@ -1,0 +1,127 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: ['8.3', '8.4']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, xml, ctype, iconv, intl, pdo, pdo_mysql, dom, filter, gd, json
+          tools: composer:v2
+          coverage: xdebug
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run unit tests
+        run: composer test-unit
+
+      - name: Generate coverage report
+        if: matrix.php-version == '8.3'
+        run: composer test-coverage
+
+      - name: Upload coverage reports to Codecov
+        if: matrix.php-version == '8.3'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/clover.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: ['8.3', '8.4']
+    
+    services:
+      weaviate:
+        image: cr.weaviate.io/semitechnologies/weaviate:1.31.0
+        ports:
+          - 18080:8080
+          - 50052:50051
+        env:
+          QUERY_DEFAULTS_LIMIT: 25
+          AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+          PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+          DEFAULT_VECTORIZER_MODULE: 'none'
+          ENABLE_MODULES: ''
+          CLUSTER_HOSTNAME: 'node1'
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/v1/.well-known/ready"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 5
+          --health-start-period 40s
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, xml, ctype, iconv, intl, pdo, pdo_mysql, dom, filter, gd, json
+          tools: composer:v2
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Wait for Weaviate to be ready
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:18080/v1/.well-known/ready; do sleep 2; done'
+
+      - name: Verify Weaviate is accessible
+        run: |
+          curl -f http://localhost:18080/v1/.well-known/ready
+          curl -f http://localhost:18080/v1/.well-known/live
+          curl -f http://localhost:18080/v1/meta
+
+      - name: Run integration tests
+        env:
+          WEAVIATE_URL: http://localhost:18080
+        run: composer test-integration
