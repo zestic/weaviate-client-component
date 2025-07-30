@@ -52,11 +52,19 @@ class ConfigProvider
             // Named client factories - these will be handled by the abstract factory
             'weaviate.client.default' => Factory\WeaviateClientFactory::class,
 
-            // Factory services themselves
-            Factory\WeaviateClientFactory::class => Factory\WeaviateClientFactory::class,
-            Factory\ConnectionFactory::class => Factory\ConnectionFactory::class,
-            Factory\AuthFactory::class => Factory\AuthFactory::class,
-            Factory\WeaviateClientAbstractFactory::class => Factory\WeaviateClientAbstractFactory::class,
+            // Factory services themselves - these need to be invokable
+            Factory\WeaviateClientFactory::class => function() {
+                return new Factory\WeaviateClientFactory();
+            },
+            Factory\ConnectionFactory::class => function() {
+                return new Factory\ConnectionFactory();
+            },
+            Factory\AuthFactory::class => function() {
+                return new Factory\AuthFactory();
+            },
+            Factory\WeaviateClientAbstractFactory::class => function() {
+                return new Factory\WeaviateClientAbstractFactory();
+            },
         ];
     }
 

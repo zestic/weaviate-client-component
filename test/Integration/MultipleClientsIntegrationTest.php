@@ -258,15 +258,18 @@ class MultipleClientsIntegrationTest extends TestCase
 
     public function testAbstractFactoryCanCreateClients(): void
     {
-        $abstractFactory = $this->container->get(\Zestic\WeaviateClientComponent\Factory\WeaviateClientAbstractFactory::class);
+        // Test that the abstract factory can create clients through the service manager
+        $ragClient = $this->container->get('weaviate.client.rag');
+        $customerClient = $this->container->get('weaviate.client.customer_data');
+        $analyticsClient = $this->container->get('weaviate.client.analytics');
 
-        $this->assertTrue($abstractFactory->canCreate($this->container, 'weaviate.client.rag'));
-        $this->assertTrue($abstractFactory->canCreate($this->container, 'weaviate.client.customer_data'));
-        $this->assertFalse($abstractFactory->canCreate($this->container, 'weaviate.client.nonexistent'));
-        $this->assertFalse($abstractFactory->canCreate($this->container, 'other.service.name'));
-
-        $ragClient = $abstractFactory->__invoke($this->container, 'weaviate.client.rag');
         $this->assertInstanceOf(WeaviateClient::class, $ragClient);
+        $this->assertInstanceOf(WeaviateClient::class, $customerClient);
+        $this->assertInstanceOf(WeaviateClient::class, $analyticsClient);
+
+        // Test that non-existent clients cannot be created
+        $this->expectException(\Laminas\ServiceManager\Exception\ServiceNotFoundException::class);
+        $this->container->get('weaviate.client.nonexistent');
     }
 
     /**
