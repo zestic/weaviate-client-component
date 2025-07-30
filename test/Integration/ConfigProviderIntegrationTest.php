@@ -288,7 +288,7 @@ class ConfigProviderIntegrationTest extends TestCase
 
         $factory1 = $this->container->get(WeaviateClientFactory::class);
         $factory2 = $this->container->get(WeaviateClientFactory::class);
-        
+
         // Factories should also be cached
         $this->assertSame($factory1, $factory2);
     }

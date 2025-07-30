@@ -53,16 +53,16 @@ class ConfigProvider
             'weaviate.client.default' => Factory\WeaviateClientFactory::class,
 
             // Factory services themselves - these need to be invokable
-            Factory\WeaviateClientFactory::class => function() {
+            Factory\WeaviateClientFactory::class => function () {
                 return new Factory\WeaviateClientFactory();
             },
-            Factory\ConnectionFactory::class => function() {
+            Factory\ConnectionFactory::class => function () {
                 return new Factory\ConnectionFactory();
             },
-            Factory\AuthFactory::class => function() {
+            Factory\AuthFactory::class => function () {
                 return new Factory\AuthFactory();
             },
-            Factory\WeaviateClientAbstractFactory::class => function() {
+            Factory\WeaviateClientAbstractFactory::class => function () {
                 return new Factory\WeaviateClientAbstractFactory();
             },
         ];
