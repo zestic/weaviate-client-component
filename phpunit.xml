@@ -8,7 +8,8 @@
          cacheDirectory=".phpunit.cache">
     <testsuites>
         <testsuite name="Unit">
-            <directory>test/Unit</directory>
+            <directory>test/Configuration</directory>
+            <directory>test/Factory</directory>
         </testsuite>
         <testsuite name="Integration">
             <directory>test/Integration</directory>
