@@ -100,10 +100,11 @@ class AuthConfigTest extends TestCase
 
     public function testFromArrayWithDefaults(): void
     {
-        $config = AuthConfig::fromArray([]);
+        // API key auth requires an api_key, so we need to provide one
+        $config = AuthConfig::fromArray(['api_key' => 'test-key']);
 
         $this->assertEquals(AuthConfig::TYPE_API_KEY, $config->type);
-        $this->assertNull($config->apiKey);
+        $this->assertEquals('test-key', $config->apiKey);
         $this->assertEquals([], $config->additionalParams);
     }
 

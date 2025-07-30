@@ -1,0 +1,80 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: json, curl
+          coverage: xdebug
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+      - name: Run unit tests
+        run: composer test-unit
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: json, curl
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+      - name: Start Weaviate
+        run: docker compose up -d weaviate
+      - name: Wait for Weaviate to be ready
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:18080/v1/meta; do sleep 2; done'
+      - name: Run integration tests
+        run: composer test-integration
+        env:
+          WEAVIATE_URL: http://localhost:18080
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: json, curl
+          coverage: xdebug
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+      - name: Start Weaviate
+        run: docker compose up -d weaviate
+      - name: Wait for Weaviate to be ready
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:18080/v1/meta; do sleep 2; done'
+      - name: Run tests with coverage
+        run: composer test-coverage
+        env:
+          WEAVIATE_URL: http://localhost:18080
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: zestic/weaviate-client-component

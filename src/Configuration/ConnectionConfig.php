@@ -99,6 +99,11 @@ class ConnectionConfig
             return null;
         }
 
+        // Handle IPv6 addresses (they contain colons but are not host:port format)
+        if ($this->host === '::1' || str_starts_with($this->host, '[')) {
+            return $this->host;
+        }
+
         // If host contains port, extract just the host part
         if (str_contains($this->host, ':')) {
             return explode(':', $this->host)[0];

@@ -26,7 +26,7 @@ class WeaviateConfigTest extends TestCase
 
     public function testConstructorWithAllParameters(): void
     {
-        $connection = new ConnectionConfig(host: 'localhost');
+        $connection = new ConnectionConfig(clusterUrl: 'my-cluster.weaviate.network');
         $auth = new AuthConfig(apiKey: 'test-key');
 
         $config = new WeaviateConfig(
@@ -167,12 +167,19 @@ class WeaviateConfigTest extends TestCase
         $this->assertFalse($localConfig->isCloudConnection());
         $this->assertFalse($localConfig->isCustomConnection());
 
-        $cloudConfig = new WeaviateConfig(connectionMethod: WeaviateConfig::CONNECTION_METHOD_CLOUD);
+        $cloudConfig = new WeaviateConfig(
+            connectionMethod: WeaviateConfig::CONNECTION_METHOD_CLOUD,
+            connection: new ConnectionConfig(clusterUrl: 'my-cluster.weaviate.network'),
+            auth: new AuthConfig(apiKey: 'test-key')
+        );
         $this->assertFalse($cloudConfig->isLocalConnection());
         $this->assertTrue($cloudConfig->isCloudConnection());
         $this->assertFalse($cloudConfig->isCustomConnection());
 
-        $customConfig = new WeaviateConfig(connectionMethod: WeaviateConfig::CONNECTION_METHOD_CUSTOM);
+        $customConfig = new WeaviateConfig(
+            connectionMethod: WeaviateConfig::CONNECTION_METHOD_CUSTOM,
+            connection: new ConnectionConfig(host: 'custom-server.com')
+        );
         $this->assertFalse($customConfig->isLocalConnection());
         $this->assertFalse($customConfig->isCloudConnection());
         $this->assertTrue($customConfig->isCustomConnection());
@@ -256,7 +263,9 @@ class WeaviateConfigTest extends TestCase
     public function testInvalidConnectionMethod(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Invalid connection method: 'invalid'. Must be 'local', 'cloud', or 'custom'");
+        $this->expectExceptionMessage(
+            "Invalid connection method: 'invalid'. Must be one of: 'local', 'cloud', 'custom'"
+        );
 
         new WeaviateConfig(connectionMethod: 'invalid');
     }

@@ -25,9 +25,10 @@
         "source": "https://github.com/zestic/weaviate-client-component"
     },
     "require": {
-        "php": "^8.1",
+        "php": "^8.3",
         "laminas/laminas-servicemanager": "^3.22",
-        "psr/container": "^1.0"
+        "psr/container": "^1.0",
+        "zestic/weaviate-php-client": "^0.3.0"
     },
     "require-dev": {
         "ergebnis/composer-normalize": "^2.42",
@@ -60,7 +61,7 @@
         "normalize": "@composer normalize",
         "normalize-check": "@composer normalize --dry-run",
         "phpstan": "phpstan analyse src test --level=8",
-        "security-audit": "echo 'Security audit not available in this Composer version'",
+        "security-audit": "composer audit --format=table",
         "test": "phpunit",
         "test-coverage": "phpunit --coverage-html coverage",
         "test-integration": "phpunit test/Integration",
