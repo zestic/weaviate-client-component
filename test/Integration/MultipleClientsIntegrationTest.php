@@ -266,7 +266,10 @@ class MultipleClientsIntegrationTest extends TestCase
         $this->assertInstanceOf(WeaviateClient::class, $ragClient);
         $this->assertInstanceOf(WeaviateClient::class, $customerClient);
         $this->assertInstanceOf(WeaviateClient::class, $analyticsClient);
+    }
 
+    public function testAbstractFactoryRejectsNonExistentClients(): void
+    {
         // Test that non-existent clients cannot be created
         $this->expectException(\Laminas\ServiceManager\Exception\ServiceNotFoundException::class);
         $this->container->get('weaviate.client.nonexistent');

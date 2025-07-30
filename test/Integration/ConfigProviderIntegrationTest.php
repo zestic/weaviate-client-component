@@ -137,7 +137,10 @@ class ConfigProviderIntegrationTest extends TestCase
         // Test that abstract factory can create configured clients
         $testClient = $this->container->get('weaviate.client.test_client');
         $this->assertInstanceOf(WeaviateClient::class, $testClient);
+    }
 
+    public function testAbstractFactoryRejectsNonConfiguredClients(): void
+    {
         // Test that abstract factory rejects non-configured clients
         $this->expectException(\Laminas\ServiceManager\Exception\ServiceNotFoundException::class);
         $this->container->get('weaviate.client.nonexistent');
