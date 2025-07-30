@@ -1,0 +1,74 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Weaviate Client Component Configuration
+ * 
+ * Copy this file to your config/autoload/ directory and rename it to weaviate.local.php
+ * Then configure it according to your needs.
+ */
+
+return [
+    'weaviate' => [
+        // Single client configuration (backward compatibility)
+        'connection_method' => 'local', // 'local', 'cloud', or 'custom'
+        'connection' => [
+            'host' => 'localhost:8080',
+        ],
+        // Optional authentication
+        // 'auth' => [
+        //     'type' => 'api_key',
+        //     'api_key' => 'your-api-key',
+        // ],
+        
+        // Multiple named clients configuration
+        'clients' => [
+            'default' => [
+                'connection_method' => 'local',
+                'connection' => [
+                    'host' => 'localhost:8080',
+                ],
+            ],
+            
+            // Example: RAG client for document search
+            'rag' => [
+                'connection_method' => 'cloud',
+                'connection' => [
+                    'cluster_url' => 'rag-cluster.weaviate.network',
+                ],
+                'auth' => [
+                    'type' => 'api_key',
+                    'api_key' => 'your-rag-api-key',
+                ],
+                'additional_headers' => [
+                    'X-OpenAI-Api-Key' => 'your-openai-key',
+                ],
+            ],
+            
+            // Example: Customer data client
+            'customer_data' => [
+                'connection_method' => 'cloud',
+                'connection' => [
+                    'cluster_url' => 'customer-data.weaviate.network',
+                ],
+                'auth' => [
+                    'type' => 'api_key',
+                    'api_key' => 'your-customer-data-key',
+                ],
+                'enable_retry' => true,
+                'max_retries' => 5,
+            ],
+            
+            // Example: Analytics client
+            'analytics' => [
+                'connection_method' => 'custom',
+                'connection' => [
+                    'host' => 'analytics-server.internal',
+                    'port' => 8080,
+                    'secure' => false,
+                ],
+            ],
+        ],
+    ],
+];
