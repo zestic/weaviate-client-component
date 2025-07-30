@@ -63,8 +63,8 @@
         "phpstan": "phpstan analyse src test --level=8",
         "security-audit": "composer audit --format=table",
         "test": "phpunit test/Unit",
-        "test-coverage": "phpunit test/Unit --coverage-html coverage",
         "test-all": "phpunit",
+        "test-coverage": "phpunit test/Unit --coverage-html coverage",
         "test-integration": "phpunit test/Integration",
         "test-unit": "phpunit test/Unit"
     }
