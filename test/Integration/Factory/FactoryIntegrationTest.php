@@ -257,9 +257,15 @@ class FactoryIntegrationTest extends TestCase
         $this->assertEquals(['weaviate.client.test-client'], $serviceNames);
 
         // Test utility methods
-        $this->assertEquals('weaviate.client.test-client', WeaviateClientAbstractFactory::getServiceName('test-client'));
+        $this->assertEquals(
+            'weaviate.client.test-client',
+            WeaviateClientAbstractFactory::getServiceName('test-client')
+        );
         $this->assertTrue(WeaviateClientAbstractFactory::isClientServiceName('weaviate.client.test-client'));
-        $this->assertEquals('test-client', WeaviateClientAbstractFactory::extractClientNameFromServiceName('weaviate.client.test-client'));
+        $this->assertEquals(
+            'test-client',
+            WeaviateClientAbstractFactory::extractClientNameFromServiceName('weaviate.client.test-client')
+        );
     }
 
     private function createContainer(array $config): ContainerInterface
