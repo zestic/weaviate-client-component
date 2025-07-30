@@ -1,0 +1,33 @@
+# Dependencies
+/vendor/
+composer.lock
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+/coverage/
+.phpunit.cache/
+phpunit.xml.bak
+
+# Logs
+*.log
+
+# Local configuration
+config/autoload/weaviate.local.php
+
+# Build artifacts
+/build/
+/dist/
+
+# Temporary files
+/tmp/
+*.tmp
