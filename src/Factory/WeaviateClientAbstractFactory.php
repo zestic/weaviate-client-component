@@ -25,13 +25,8 @@ class WeaviateClientAbstractFactory implements AbstractFactoryInterface
     /**
      * Determine if this factory can create the requested service.
      */
-    public function canCreate(ContainerInterface $container, $requestedName): bool
+    public function canCreate(ContainerInterface $container, string $requestedName): bool
     {
-        // Ensure requestedName is a string
-        if (!is_string($requestedName)) {
-            return false;
-        }
-
         // Handle requests like 'weaviate.client.{name}'
         if (!str_starts_with($requestedName, self::CLIENT_PREFIX)) {
             return false;
@@ -48,13 +43,9 @@ class WeaviateClientAbstractFactory implements AbstractFactoryInterface
      */
     public function __invoke(
         ContainerInterface $container,
-        $requestedName,
+        string $requestedName,
         ?array $options = null
     ): object {
-        if (!is_string($requestedName)) {
-            throw new \InvalidArgumentException('Requested name must be a string');
-        }
-
         if (!$this->canCreate($container, $requestedName)) {
             throw ConfigurationException::clientNotFound($requestedName);
         }
