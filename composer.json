@@ -29,7 +29,7 @@
         "guzzlehttp/guzzle": "^7.9",
         "guzzlehttp/psr7": "^2.7",
         "laminas/laminas-servicemanager": "^3.22 || ^4.0",
-        "psr/container": "^1.0",
+        "psr/container": "^1.0 || ^2.0",
         "zestic/weaviate-php-client": "^0.3.0"
     },
     "require-dev": {
