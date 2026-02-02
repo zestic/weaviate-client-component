@@ -13,7 +13,7 @@ jobs:
     
     strategy:
       matrix:
-        php-version: ['8.3', '8.4']
+        php-version: ['8.4', '8.5']
     
     steps:
       - name: Checkout code
@@ -45,11 +45,11 @@ jobs:
         run: composer test-unit
 
       - name: Generate coverage report
-        if: matrix.php-version == '8.3'
+        if: matrix.php-version == '8.5'
         run: composer test-coverage
 
       - name: Upload coverage reports to Codecov
-        if: matrix.php-version == '8.3'
+        if: matrix.php-version == '8.5'
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage/clover.xml
@@ -63,11 +63,11 @@ jobs:
     
     strategy:
       matrix:
-        php-version: ['8.3', '8.4']
+        php-version: ['8.4', '8.5']
     
     services:
       weaviate:
-        image: cr.weaviate.io/semitechnologies/weaviate:1.31.0
+        image: cr.weaviate.io/semitechnologies/weaviate:1.35.6
         ports:
           - 18080:8080
           - 50052:50051
