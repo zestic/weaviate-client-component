@@ -101,63 +101,11 @@ class ConfigProvider
     public function getWeaviateConfig(): array
     {
         return [
-            // Default configuration - can be overridden in application config
-            'connection_method' => 'local',
-            'connection' => [
-                'host' => 'localhost',
-                'port' => 8080,
-                'secure' => false,
-                'timeout' => 30,
-            ],
-            'enable_retry' => true,
-            'max_retries' => 4,
-            'additional_headers' => [],
-
-            // Example clients configuration (commented out by default)
-            /*
-            'clients' => [
+            'factory_class' => Factory\WeaviateClientFactory::class,
+            'clients'       => [
                 'default' => [
-                    'connection_method' => 'local',
-                    'connection' => [
-                        'host' => 'localhost',
-                        'port' => 8080,
-                    ],
-                ],
-                'rag' => [
-                    'connection_method' => 'cloud',
-                    'connection' => [
-                        'cluster_url' => 'rag-cluster.weaviate.network',
-                    ],
-                    'auth' => [
-                        'type' => 'api_key',
-                        'api_key' => 'your-rag-api-key',
-                    ],
-                    'additional_headers' => [
-                        'X-OpenAI-Api-Key' => 'your-openai-key',
-                    ],
-                ],
-                'customer_data' => [
-                    'connection_method' => 'cloud',
-                    'connection' => [
-                        'cluster_url' => 'customer-data.weaviate.network',
-                    ],
-                    'auth' => [
-                        'type' => 'api_key',
-                        'api_key' => 'your-customer-data-api-key',
-                    ],
-                    'enable_retry' => true,
-                    'max_retries' => 5,
-                ],
-                'analytics' => [
-                    'connection_method' => 'custom',
-                    'connection' => [
-                        'host' => 'analytics-server.internal',
-                        'port' => 8080,
-                        'secure' => false,
-                    ],
                 ],
             ],
-            */
         ];
     }
 

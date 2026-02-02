@@ -11,17 +11,6 @@ declare(strict_types=1);
 
 return [
     'weaviate' => [
-        // Single client configuration (backward compatibility)
-        'connection_method' => 'local', // 'local', 'cloud', or 'custom'
-        'connection' => [
-            'host' => 'localhost:8080',
-        ],
-        // Optional authentication
-        // 'auth' => [
-        //     'type' => 'api_key',
-        //     'api_key' => 'your-api-key',
-        // ],
-        
         // Multiple named clients configuration
         'clients' => [
             'default' => [
@@ -33,6 +22,7 @@ return [
             
             // Example: RAG client for document search
             'rag' => [
+                'class' => \Infrastructure\Weaviate\Client\RagClient::class,
                 'connection_method' => 'cloud',
                 'connection' => [
                     'cluster_url' => 'rag-cluster.weaviate.network',

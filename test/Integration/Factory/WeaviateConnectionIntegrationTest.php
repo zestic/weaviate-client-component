@@ -40,9 +40,12 @@ class WeaviateConnectionIntegrationTest extends TestCase
 
     public function testLocalConnectionFactoryWithRealWeaviate(): void
     {
+        // Use the Docker port for testing
+        $port = parse_url($this->weaviateUrl)['port'] ?? 8080;
+
         $connectionConfig = [
             'host' => 'localhost',
-            'port' => 8080,
+            'port' => $port,
             'secure' => false,
             'timeout' => 30,
         ];
@@ -50,14 +53,14 @@ class WeaviateConnectionIntegrationTest extends TestCase
         $connection = $this->connectionFactory->createConnection($connectionConfig);
 
         // Verify connection configuration
-        $this->assertEquals('http://localhost:8080', $connection['url']);
+        $this->assertEquals("http://localhost:{$port}", $connection['url']);
         $this->assertEquals('localhost', $connection['host']);
-        $this->assertEquals(8080, $connection['port']);
+        $this->assertEquals($port, $connection['port']);
         $this->assertFalse($connection['secure']);
         $this->assertEquals(30, $connection['timeout']);
 
-        // Test actual HTTP connection
-        $this->assertTrue($this->testHttpConnection($connection['url']));
+        // Test actual HTTP connection to a valid endpoint
+        $this->assertTrue($this->testHttpConnection($connection['url'] . '/v1/.well-known/ready'));
     }
 
     public function testClientFactoryWithRealWeaviate(): void
@@ -67,14 +70,18 @@ class WeaviateConnectionIntegrationTest extends TestCase
 
         $config = [
             'weaviate' => [
-                'connection_method' => 'local',
-                'connection' => [
-                    'host' => 'localhost',
-                    'port' => $port,
-                    'secure' => false,
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'local',
+                        'connection' => [
+                            'host' => 'localhost',
+                            'port' => $port,
+                            'secure' => false,
+                        ],
+                        'enable_retry' => true,
+                        'max_retries' => 2,
+                    ],
                 ],
-                'enable_retry' => true,
-                'max_retries' => 2,
             ],
         ];
 
@@ -235,9 +242,6 @@ class WeaviateConnectionIntegrationTest extends TestCase
         return $this->testWeaviateEndpoints($this->weaviateUrl);
     }
 
-    /**
-     * Test basic HTTP connection to a URL.
-     */
     private function testHttpConnection(string $url): bool
     {
         $context = stream_context_create([
@@ -247,20 +251,11 @@ class WeaviateConnectionIntegrationTest extends TestCase
             ],
         ]);
 
-        // If the URL already contains a path (like /v1/meta), use it as-is
-        // Otherwise, append the ready endpoint
-        $testUrl = (strpos($url, '/v1/') !== false && strpos($url, '/v1/.well-known/ready') === false)
-            ? $url
-            : $url . '/v1/.well-known/ready';
-
-        $result = @file_get_contents($testUrl, false, $context);
+        $result = @file_get_contents($url, false, $context);
 
         return $result !== false;
     }
 
-    /**
-     * Test Weaviate-specific endpoints.
-     */
     private function testWeaviateEndpoints(string $baseUrl): bool
     {
         $endpoints = [

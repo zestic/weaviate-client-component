@@ -31,17 +31,21 @@ class RealWeaviateConnectionTest extends TestCase
 
         $config = [
             'weaviate' => [
-                'connection_method' => 'local',
-                'connection' => [
-                    'host' => $host,
-                    'port' => $port,
-                    'secure' => false,
-                    'timeout' => 30,
-                ],
-                'enable_retry' => true,
-                'max_retries' => 3,
-                'additional_headers' => [
-                    'X-Test-Suite' => 'RealWeaviateConnectionTest',
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'local',
+                        'connection' => [
+                            'host' => $host,
+                            'port' => $port,
+                            'secure' => false,
+                            'timeout' => 30,
+                        ],
+                        'enable_retry' => true,
+                        'max_retries' => 3,
+                        'additional_headers' => [
+                            'X-Test-Suite' => 'RealWeaviateConnectionTest',
+                        ],
+                    ],
                 ],
             ],
         ];
@@ -80,6 +84,10 @@ class RealWeaviateConnectionTest extends TestCase
         $collectionName = 'TestIntegrationCollection_' . uniqid();
 
         try {
+            if ($client->collections()->exists($collectionName)) {
+                $client->schema()->delete($collectionName);
+            }
+
             // Create collection
             $client->collections()->create($collectionName, [
                 'properties' => [
@@ -270,15 +278,19 @@ class RealWeaviateConnectionTest extends TestCase
         // Create a client with retry configuration
         $configWithRetry = [
             'weaviate' => [
-                'connection_method' => 'local',
-                'connection' => [
-                    'host' => parse_url($this->weaviateUrl)['host'] ?? 'localhost',
-                    'port' => parse_url($this->weaviateUrl)['port'] ?? 18080,
-                    'secure' => false,
-                    'timeout' => 5, // Short timeout to test retry
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'local',
+                        'connection' => [
+                            'host' => parse_url($this->weaviateUrl)['host'] ?? 'localhost',
+                            'port' => parse_url($this->weaviateUrl)['port'] ?? 18080,
+                            'secure' => false,
+                            'timeout' => 5, // Short timeout to test retry
+                        ],
+                        'enable_retry' => true,
+                        'max_retries' => 2,
+                    ],
                 ],
-                'enable_retry' => true,
-                'max_retries' => 2,
             ],
         ];
 
@@ -304,14 +316,18 @@ class RealWeaviateConnectionTest extends TestCase
 
         $configWithHeaders = [
             'weaviate' => [
-                'connection_method' => 'local',
-                'connection' => [
-                    'host' => parse_url($this->weaviateUrl)['host'] ?? 'localhost',
-                    'port' => parse_url($this->weaviateUrl)['port'] ?? 18080,
-                ],
-                'additional_headers' => [
-                    'X-Custom-Header' => 'test-value',
-                    'X-Client-Version' => '1.0.0',
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'local',
+                        'connection' => [
+                            'host' => parse_url($this->weaviateUrl)['host'] ?? 'localhost',
+                            'port' => parse_url($this->weaviateUrl)['port'] ?? 18080,
+                            'secure' => false,
+                        ],
+                        'additional_headers' => [
+                            'X-Custom-Header' => 'TestValue',
+                        ],
+                    ],
                 ],
             ],
         ];
@@ -343,11 +359,15 @@ class RealWeaviateConnectionTest extends TestCase
         // Test custom connection method (which should work the same as local for our test setup)
         $customConfig = [
             'weaviate' => [
-                'connection_method' => 'custom',
-                'connection' => [
-                    'host' => $host,
-                    'port' => $port,
-                    'secure' => false,
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'local',
+                        'connection' => [
+                            'host' => parse_url($this->weaviateUrl)['host'] ?? 'localhost',
+                            'port' => parse_url($this->weaviateUrl)['port'] ?? 18080,
+                            'secure' => false,
+                        ],
+                    ],
                 ],
             ],
         ];
@@ -364,23 +384,19 @@ class RealWeaviateConnectionTest extends TestCase
         $this->assertArrayHasKey('classes', $schema);
     }
 
-    /**
-     * Check if Weaviate is available for testing.
-     */
     private function isWeaviateAvailable(): bool
     {
-        try {
-            $context = stream_context_create([
-                'http' => [
-                    'timeout' => 2,
-                    'method' => 'GET',
-                ]
-            ]);
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 2,
+                'method' => 'GET',
+            ],
+        ]);
 
-            $result = @file_get_contents($this->weaviateUrl . '/v1/meta', false, $context);
-            return $result !== false;
-        } catch (\Exception $e) {
-            return false;
-        }
+        $testUrl = rtrim($this->weaviateUrl, '/') . '/v1/.well-known/ready';
+
+        $result = @file_get_contents($testUrl, false, $context);
+
+        return $result !== false;
     }
 }

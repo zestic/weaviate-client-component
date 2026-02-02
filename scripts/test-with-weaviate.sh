@@ -32,6 +32,23 @@ trap cleanup EXIT
 echo -e "${BLUE}Step 1: Starting Weaviate${NC}"
 "$SCRIPT_DIR/start-weaviate.sh"
 
+# Wait for Weaviate to be ready
+echo -e "\n${YELLOW}Waiting for Weaviate to be ready...${NC}"
+max_retries=30
+retry_interval=2
+for ((i=1; i<=max_retries; i++)); do
+    if curl -sf -o /dev/null "$WEAVIATE_URL/v1/.well-known/ready"; then
+        echo -e "${GREEN}Weaviate is ready!${NC}"
+        break
+    fi
+    if [ "$i" -eq "$max_retries" ]; then
+        echo -e "${RED}Error: Weaviate did not become ready in time.${NC}"
+        exit 1
+    fi
+    echo -e "${YELLOW}Attempt $i/$max_retries: Weaviate not ready, retrying in $retry_interval seconds...${NC}"
+    sleep "$retry_interval"
+done
+
 # Export environment variable for tests
 export WEAVIATE_URL="$WEAVIATE_URL"
 

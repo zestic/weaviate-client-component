@@ -29,10 +29,14 @@ class WeaviateClientFactoryTest extends TestCase
     {
         $container = $this->createMockContainer([
             'weaviate' => [
-                'connection_method' => 'local',
-                'connection' => [
-                    'host' => 'localhost',
-                    'port' => 8080,
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'local',
+                        'connection' => [
+                            'host' => 'localhost',
+                            'port' => 8080,
+                        ],
+                    ],
                 ],
             ],
         ]);
@@ -51,18 +55,22 @@ class WeaviateClientFactoryTest extends TestCase
     {
         $container = $this->createMockContainer([
             'weaviate' => [
-                'connection_method' => 'local',
-                'connection' => [
-                    'host' => 'localhost',
-                    'port' => 8080,
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'local',
+                        'connection' => [
+                            'host' => 'localhost',
+                            'port' => 8080,
+                        ],
+                        'auth' => [
+                            'type' => 'api_key',
+                            'api_key' => 'test-key',
+                        ],
+                        'additional_headers' => ['X-Custom' => 'value'],
+                        'enable_retry' => false,
+                        'max_retries' => 2,
+                    ],
                 ],
-                'auth' => [
-                    'type' => 'api_key',
-                    'api_key' => 'test-key',
-                ],
-                'additional_headers' => ['X-Custom' => 'value'],
-                'enable_retry' => false,
-                'max_retries' => 2,
             ],
         ]);
 
@@ -85,13 +93,17 @@ class WeaviateClientFactoryTest extends TestCase
     {
         $container = $this->createMockContainer([
             'weaviate' => [
-                'connection_method' => 'cloud',
-                'connection' => [
-                    'cluster_url' => 'my-cluster.weaviate.network',
-                ],
-                'auth' => [
-                    'type' => 'api_key',
-                    'api_key' => 'test-key',
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'cloud',
+                        'connection' => [
+                            'cluster_url' => 'my-cluster.weaviate.network',
+                        ],
+                        'auth' => [
+                            'type' => 'api_key',
+                            'api_key' => 'test-key',
+                        ],
+                    ],
                 ],
             ],
         ]);
@@ -114,11 +126,15 @@ class WeaviateClientFactoryTest extends TestCase
     {
         $container = $this->createMockContainer([
             'weaviate' => [
-                'connection_method' => 'cloud',
-                'connection' => [],
-                'auth' => [
-                    'type' => 'api_key',
-                    'api_key' => 'test-key',
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'cloud',
+                        'connection' => [],
+                        'auth' => [
+                            'type' => 'api_key',
+                            'api_key' => 'test-key',
+                        ],
+                    ],
                 ],
             ],
         ]);
@@ -133,9 +149,13 @@ class WeaviateClientFactoryTest extends TestCase
     {
         $container = $this->createMockContainer([
             'weaviate' => [
-                'connection_method' => 'cloud',
-                'connection' => [
-                    'cluster_url' => 'my-cluster.weaviate.network',
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'cloud',
+                        'connection' => [
+                            'cluster_url' => 'my-cluster.weaviate.network',
+                        ],
+                    ],
                 ],
             ],
         ]);
@@ -150,15 +170,19 @@ class WeaviateClientFactoryTest extends TestCase
     {
         $container = $this->createMockContainer([
             'weaviate' => [
-                'connection_method' => 'custom',
-                'connection' => [
-                    'host' => 'example.com',
-                    'port' => 9200,
-                    'secure' => true,
-                ],
-                'auth' => [
-                    'type' => 'bearer_token',
-                    'bearer_token' => 'test-token',
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'custom',
+                        'connection' => [
+                            'host' => 'example.com',
+                            'port' => 9200,
+                            'secure' => true,
+                        ],
+                        'auth' => [
+                            'type' => 'bearer_token',
+                            'bearer_token' => 'test-token',
+                        ],
+                    ],
                 ],
             ],
         ]);
@@ -177,9 +201,13 @@ class WeaviateClientFactoryTest extends TestCase
     {
         $container = $this->createMockContainer([
             'weaviate' => [
-                'connection_method' => 'custom',
-                'connection' => [
-                    'port' => 9200,
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'custom',
+                        'connection' => [
+                            'port' => 9200,
+                        ],
+                    ],
                 ],
             ],
         ]);
@@ -266,8 +294,12 @@ class WeaviateClientFactoryTest extends TestCase
     {
         $container = $this->createMockContainer([
             'weaviate' => [
-                'connection_method' => 'local',
-                'connection' => ['host' => 'localhost'],
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'local',
+                        'connection' => ['host' => 'localhost'],
+                    ],
+                ],
             ],
         ]);
 
@@ -299,19 +331,6 @@ class WeaviateClientFactoryTest extends TestCase
         $this->assertEquals(['client1', 'client2'], $names);
     }
 
-    public function testGetConfiguredClientNamesWithRootConfig(): void
-    {
-        $container = $this->createMockContainer([
-            'weaviate' => [
-                'connection_method' => 'local',
-            ],
-        ]);
-
-        $names = $this->factory->getConfiguredClientNames($container);
-
-        $this->assertEquals(['default'], $names);
-    }
-
     public function testHasClient(): void
     {
         $container = $this->createMockContainer([
@@ -324,18 +343,6 @@ class WeaviateClientFactoryTest extends TestCase
 
         $this->assertTrue($this->factory->hasClient($container, 'existing-client'));
         $this->assertFalse($this->factory->hasClient($container, 'nonexistent-client'));
-    }
-
-    public function testHasClientWithRootConfig(): void
-    {
-        $container = $this->createMockContainer([
-            'weaviate' => [
-                'connection_method' => 'local',
-            ],
-        ]);
-
-        $this->assertTrue($this->factory->hasClient($container, 'default'));
-        $this->assertFalse($this->factory->hasClient($container, 'other'));
     }
 
     public function testValidateClientConfigValid(): void
@@ -361,7 +368,11 @@ class WeaviateClientFactoryTest extends TestCase
     {
         $container = $this->createMockContainer([
             'weaviate' => [
-                'connection_method' => 'invalid',
+                'clients' => [
+                    'default' => [
+                        'connection_method' => 'invalid',
+                    ],
+                ],
             ],
         ]);
 

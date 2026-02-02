@@ -54,22 +54,50 @@ class WeaviateClientFactory
         };
     }
 
-    /**
-     * Get configuration for a specific client.
-     */
-    private function getClientConfig(array $weaviateConfig, string $name): array
+    public function hasClient(ContainerInterface $container, string $name): bool
     {
-        // Support for multiple named clients
-        if (isset($weaviateConfig['clients'][$name])) {
-            return $weaviateConfig['clients'][$name];
+        $config = $container->get('config');
+        $weaviateConfig = $config['weaviate'] ?? [];
+
+        return isset($weaviateConfig['clients'][$name]);
+    }
+
+    public function createMultipleClients(ContainerInterface $container): array
+    {
+        $config = $container->get('config');
+        $weaviateConfig = $config['weaviate'] ?? [];
+
+        $clients = [];
+
+        if (isset($weaviateConfig['clients'])) {
+            foreach (array_keys($weaviateConfig['clients']) as $name) {
+                $clients[$name] = $this->createClient($container, (string) $name);
+            }
         }
 
-        // Backward compatibility: use root config as default
-        if ($name === 'default' && !isset($weaviateConfig['clients'])) {
-            return $weaviateConfig;
+        return $clients;
+    }
+
+    public function getConfiguredClientNames(ContainerInterface $container): array
+    {
+        $config = $container->get('config');
+        $weaviateConfig = $config['weaviate'] ?? [];
+
+        if (isset($weaviateConfig['clients'])) {
+            return array_keys($weaviateConfig['clients']);
         }
 
-        throw ConfigurationException::clientNotFound($name);
+        return [];
+    }
+
+    public function validateClientConfig(array $clientConfig): bool
+    {
+        try {
+            WeaviateConfig::fromArray($clientConfig);
+            return true;
+        } catch (ConfigurationException) {
+            return false;
+        }
     }
 
     /**
@@ -113,9 +141,6 @@ class WeaviateClientFactory
         return WeaviateClient::connectToWeaviateCloud($clusterUrl, $auth);
     }
 
-    /**
-     * Create custom WeaviateClient instance.
-     */
     private function createCustomClient(array $config): WeaviateClient
     {
         if (!isset($config['connection']['host'])) {
@@ -132,69 +157,12 @@ class WeaviateClientFactory
         return WeaviateClient::connectToCustom($host, $port, $secure, $auth, $headers);
     }
 
-    /**
-     * Create multiple clients from configuration.
-     */
-    public function createMultipleClients(ContainerInterface $container): array
+    private function getClientConfig(array $weaviateConfig, string $name): array
     {
-        $config = $container->get('config');
-        $weaviateConfig = $config['weaviate'] ?? [];
-
-        $clients = [];
-
-        // Create clients from 'clients' configuration
-        if (isset($weaviateConfig['clients'])) {
-            foreach (array_keys($weaviateConfig['clients']) as $name) {
-                $clients[$name] = $this->createClient($container, (string) $name);
-            }
-        } else {
-            // Create default client from root configuration
-            $clients['default'] = $this->createClient($container, 'default');
-        }
-
-        return $clients;
-    }
-
-    /**
-     * Get all configured client names.
-     */
-    public function getConfiguredClientNames(ContainerInterface $container): array
-    {
-        $config = $container->get('config');
-        $weaviateConfig = $config['weaviate'] ?? [];
-
-        if (isset($weaviateConfig['clients'])) {
-            return array_keys($weaviateConfig['clients']);
-        }
-
-        return ['default'];
-    }
-
-    /**
-     * Check if a client is configured.
-     */
-    public function hasClient(ContainerInterface $container, string $name): bool
-    {
-        $config = $container->get('config');
-        $weaviateConfig = $config['weaviate'] ?? [];
-
         if (isset($weaviateConfig['clients'][$name])) {
-            return true;
+            return $weaviateConfig['clients'][$name];
         }
 
-        return $name === 'default' && !isset($weaviateConfig['clients']);
-    }
-
-    /**
-     * Validate client configuration.
-     */
-    public function validateClientConfig(array $clientConfig): bool
-    {
-        try {
-            WeaviateConfig::fromArray($clientConfig);
-            return true;
-        } catch (ConfigurationException) {
-            return false;
-        }
+        throw ConfigurationException::clientNotFound($name);
     }
 }
