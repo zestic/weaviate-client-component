@@ -25,7 +25,7 @@
         "source": "https://github.com/zestic/weaviate-client-component"
     },
     "require": {
-        "php": "^8.3",
+        "php": "^8.4 || ^8.5",
         "guzzlehttp/guzzle": "^7.9",
         "guzzlehttp/psr7": "^2.7",
         "laminas/laminas-servicemanager": "^3.22 || ^4.0",

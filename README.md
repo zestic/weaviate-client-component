@@ -3,14 +3,14 @@
 [![Tests](https://github.com/zestic/weaviate-client-component/actions/workflows/test.yml/badge.svg)](https://github.com/zestic/weaviate-client-component/actions/workflows/test.yml)
 [![Lint](https://github.com/zestic/weaviate-client-component/actions/workflows/lint.yml/badge.svg)](https://github.com/zestic/weaviate-client-component/actions/workflows/lint.yml)
 [![codecov](https://codecov.io/gh/zestic/weaviate-client-component/graph/badge.svg)](https://codecov.io/gh/zestic/weaviate-client-component)
-[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.3-blue.svg)](https://php.net/)
+[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.4-blue.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 A modern Laminas/Mezzio integration component for the Weaviate PHP client with dependency injection, multiple client support, and comprehensive configuration.
 
 ## Features
 
-- 🚀 **Modern PHP 8.3+** - Leverages latest PHP features
+- 🚀 **Modern PHP 8.4+** - Leverages latest PHP features
 - 🔧 **ConfigProvider Integration** - Seamless Laminas/Mezzio setup
 - 🏭 **Service Factories** - Full dependency injection support
 - 🔀 **Multiple Clients** - Support for multiple named Weaviate connections
@@ -20,7 +20,7 @@ A modern Laminas/Mezzio integration component for the Weaviate PHP client with d
 
 ## Requirements
 
-- PHP 8.3 or higher
+- PHP 8.4 or higher
 - Laminas ServiceManager 3.22+
 - PSR-11 Container implementation
 

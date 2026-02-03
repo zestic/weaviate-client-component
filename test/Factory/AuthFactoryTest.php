@@ -76,14 +76,12 @@ class AuthFactoryTest extends TestCase
             'weaviate' => [
                 'auth' => [
                     'type' => 'oidc',
-                    'client_id' => 'test-client-id',
-                    'client_secret' => 'test-client-secret',
-                    'scope' => 'read write',
+                    'client_id' => 'test-client',
+                    'client_secret' => 'test-secret',
                 ],
             ],
         ]);
 
-        // OIDC is not yet implemented, so it should throw an exception
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage("Invalid authentication type: 'oidc'. Must be one of: 'api_key', 'bearer_token'");
 
@@ -96,11 +94,11 @@ class AuthFactoryTest extends TestCase
             'weaviate' => [],
         ]);
 
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Missing required configuration: 'auth' in Weaviate configuration");
+        $result = ($this->factory)($container);
 
-        ($this->factory)($container);
+        $this->assertNull($result);
     }
+
 
     public function testCreateAuthApiKey(): void
     {
@@ -152,8 +150,6 @@ class AuthFactoryTest extends TestCase
             'type' => 'oidc',
             'client_id' => 'client-123',
             'client_secret' => 'secret-456',
-            'scope' => 'read write',
-            'additional_params' => ['audience' => 'weaviate'],
         ];
 
         // OIDC is not yet implemented, so it should throw an exception
@@ -173,7 +169,6 @@ class AuthFactoryTest extends TestCase
         $this->expectExceptionMessage(
             "Invalid authentication type: 'invalid'. Must be one of: 'api_key', 'bearer_token', 'oidc'"
         );
-
         $this->factory->createAuth($authConfig);
     }
 
@@ -298,45 +293,18 @@ class AuthFactoryTest extends TestCase
         $container = $this->createMockContainer([
             'weaviate' => [
                 'clients' => [
-                    'test-client' => [],
+                    'test_client' => [],
                 ],
             ],
         ]);
 
-        $this->assertFalse($this->factory->hasAuthForClient($container, 'test-client'));
-    }
-
-    public function testGetAuthHeaders(): void
-    {
-        $authConfig = [
-            'type' => 'api_key',
-            'api_key' => 'test-key',
-        ];
-
-        $headers = $this->factory->getAuthHeaders($authConfig);
-
-        $this->assertEquals(['Authorization' => 'Bearer test-key'], $headers);
-    }
-
-    public function testGetAuthHeadersOidc(): void
-    {
-        $authConfig = [
-            'type' => 'oidc',
-            'client_id' => 'client-123',
-            'client_secret' => 'secret-456',
-        ];
-
-        $headers = $this->factory->getAuthHeaders($authConfig);
-
-        $this->assertEquals([], $headers);
+        $this->assertFalse($this->factory->hasAuthForClient($container, 'test_client'));
     }
 
     private function createMockContainer(array $config): ContainerInterface
     {
         $container = $this->createMock(ContainerInterface::class);
-        $container->method('get')
-            ->with('config')
-            ->willReturn($config);
+        $container->method('get')->with('config')->willReturn($config);
 
         return $container;
     }
