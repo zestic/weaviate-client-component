@@ -22,7 +22,7 @@ return [
             
             // Example: RAG client for document search
             'rag' => [
-                'class' => \Infrastructure\Weaviate\Client\RagClient::class,
+                'className' => \Infrastructure\Weaviate\Client\RagClient::class,
                 'connection_method' => 'cloud',
                 'connection' => [
                     'cluster_url' => 'rag-cluster.weaviate.network',

@@ -90,37 +90,26 @@ class WeaviateClientFactory
         return [];
     }
 
-    public function validateClientConfig(array $clientConfig): bool
-    {
-        try {
-            WeaviateConfig::fromArray($clientConfig);
-            return true;
-        } catch (ConfigurationException) {
-            return false;
-        }
-    }
-
-    /**
-     * Create local WeaviateClient instance.
-     */
     private function createLocalClient(array $config): WeaviateClient
     {
-        $connectionConfig = $this->connectionFactory->createConnection($config['connection'] ?? []);
+        $connectionConfig = $this->connectionFactory->createConnection($config['connection']);
         $auth = isset($config['auth']) ? $this->authFactory->createAuth($config['auth']) : null;
 
-        // Extract host from the connection URL
-        $url = $connectionConfig['url'];
-        $parsedUrl = parse_url($url);
-        $host = $parsedUrl['host'] ?? 'localhost';
-        $port = $parsedUrl['port'] ?? 8080;
-        $hostWithPort = $port !== 80 && $port !== 443 ? "{$host}:{$port}" : $host;
+        $client = WeaviateClient::connectToLocal($connectionConfig['url'], $auth);
 
-        return WeaviateClient::connectToLocal($hostWithPort, $auth);
+        if (isset($config['className'])) {
+            $className = $config['className'];
+            if (!is_a($className, WeaviateClient::class, true)) {
+                throw new ConfigurationException(
+                    "The specified client class '{$className}' must extend " . WeaviateClient::class
+                );
+            }
+            return new $className($client->getConnection());
+        }
+
+        return $client;
     }
 
-    /**
-     * Create cloud WeaviateClient instance.
-     */
     private function createCloudClient(array $config): WeaviateClient
     {
         if (!isset($config['connection']['cluster_url'])) {
@@ -138,7 +127,19 @@ class WeaviateClientFactory
             throw ConfigurationException::missingRequiredConfig('auth', 'cloud connection');
         }
 
-        return WeaviateClient::connectToWeaviateCloud($clusterUrl, $auth);
+        $client = WeaviateClient::connectToWeaviateCloud($clusterUrl, $auth);
+
+        if (isset($config['className'])) {
+            $className = $config['className'];
+            if (!is_a($className, WeaviateClient::class, true)) {
+                throw new ConfigurationException(
+                    "The specified client class '{$className}' must extend " . WeaviateClient::class
+                );
+            }
+            return new $className($client->getConnection());
+        }
+
+        return $client;
     }
 
     private function createCustomClient(array $config): WeaviateClient
@@ -154,7 +155,19 @@ class WeaviateClientFactory
         $secure = $config['connection']['secure'] ?? false;
         $headers = $config['additional_headers'] ?? [];
 
-        return WeaviateClient::connectToCustom($host, $port, $secure, $auth, $headers);
+        $client = WeaviateClient::connectToCustom($host, $port, $secure, $auth, $headers);
+
+        if (isset($config['className'])) {
+            $className = $config['className'];
+            if (!is_a($className, WeaviateClient::class, true)) {
+                throw new ConfigurationException(
+                    "The specified client class '{$className}' must extend " . WeaviateClient::class
+                );
+            }
+            return new $className($client->getConnection());
+        }
+
+        return $client;
     }
 
     private function getClientConfig(array $weaviateConfig, string $name): array

@@ -8,7 +8,7 @@ use Laminas\ServiceManager\ServiceManager;
 use PHPUnit\Framework\TestCase;
 use Weaviate\WeaviateClient;
 use Zestic\WeaviateClientComponent\ConfigProvider;
-use Zestic\WeaviateClientComponent\Exception\ConfigurationException;
+use Zestic\WeaviateClientComponent\Test\TestAsset\TestWeaviateClient;
 
 /**
  * @covers \Zestic\WeaviateClientComponent\ConfigProvider
@@ -51,6 +51,14 @@ class ConfigProviderIntegrationTest extends TestCase
                             'port' => $port,
                         ],
                         'additional_headers' => ['X-Test-Client' => 'integration'],
+                    ],
+                    'custom_class_client' => [
+                        'className' => TestWeaviateClient::class,
+                        'connection_method' => 'local',
+                        'connection' => [
+                            'host' => $host,
+                            'port' => $port,
+                        ],
                     ],
                 ],
             ],
@@ -98,5 +106,12 @@ class ConfigProviderIntegrationTest extends TestCase
         $client2 = $this->container->get('weaviate.client.test_client');
 
         $this->assertSame($client1, $client2, 'Service manager should return the same instance for the same client');
+    }
+
+    public function testCustomClientClassIsInstantiated(): void
+    {
+        $client = $this->container->get('weaviate.client.custom_class_client');
+
+        $this->assertInstanceOf(TestWeaviateClient::class, $client);
     }
 }

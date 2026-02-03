@@ -345,25 +345,6 @@ class WeaviateClientFactoryTest extends TestCase
         $this->assertFalse($this->factory->hasClient($container, 'nonexistent-client'));
     }
 
-    public function testValidateClientConfigValid(): void
-    {
-        $clientConfig = [
-            'connection_method' => 'local',
-            'connection' => ['host' => 'localhost'],
-        ];
-
-        $this->assertTrue($this->factory->validateClientConfig($clientConfig));
-    }
-
-    public function testValidateClientConfigInvalid(): void
-    {
-        $clientConfig = [
-            'connection_method' => 'invalid',
-        ];
-
-        $this->assertFalse($this->factory->validateClientConfig($clientConfig));
-    }
-
     public function testInvalidConnectionMethod(): void
     {
         $container = $this->createMockContainer([
