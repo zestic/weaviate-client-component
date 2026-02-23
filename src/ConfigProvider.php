@@ -103,8 +103,6 @@ class ConfigProvider
         return [
             'factory_class' => Factory\WeaviateClientFactory::class,
             'clients'       => [
-                'default' => [
-                ],
             ],
         ];
     }
