@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Zestic\WeaviateClientComponent;
 
+use Zestic\WeaviateClientComponent\Factory\AuthFactory;
+use Zestic\WeaviateClientComponent\Factory\ConnectionFactory;
+use Zestic\WeaviateClientComponent\Factory\WeaviateClientAbstractFactory;
+use Zestic\WeaviateClientComponent\Factory\WeaviateClientFactory;
 use Weaviate\WeaviateClient;
 use Weaviate\Connection\ConnectionInterface;
 use Weaviate\Auth\AuthInterface;
@@ -15,6 +19,25 @@ use Weaviate\Auth\AuthInterface;
  */
 class ConfigProvider
 {
+    /**
+     * Get all creatable service names for configured clients.
+     *
+     * @param array $config
+     * @return string[]
+     */
+    public function getCreatableServiceNames(array $config): array
+    {
+        $clientNames = $this->getConfiguredClientNames($config);
+        $serviceNames = [
+            \Weaviate\WeaviateClient::class,
+            'WeaviateClient',
+            'weaviate.client',
+        ];
+        foreach ($clientNames as $name) {
+            $serviceNames[] = 'weaviate.clients.' . $name;
+        }
+        return $serviceNames;
+    }
     /**
      * Return configuration for this component.
      */
@@ -45,25 +68,25 @@ class ConfigProvider
     {
         return [
             // Core Weaviate services
-            WeaviateClient::class => Factory\WeaviateClientFactory::class,
-            ConnectionInterface::class => Factory\ConnectionFactory::class,
-            AuthInterface::class => Factory\AuthFactory::class,
+            WeaviateClient::class => WeaviateClientFactory::class,
+            ConnectionInterface::class => ConnectionFactory::class,
+            AuthInterface::class => AuthFactory::class,
 
             // Named client factories - these will be handled by the abstract factory
-            'weaviate.client.default' => Factory\WeaviateClientFactory::class,
+            'weaviate.clients.default' => WeaviateClientFactory::class,
 
             // Factory services themselves - these need to be invokable
-            Factory\WeaviateClientFactory::class => function () {
-                return new Factory\WeaviateClientFactory();
+            WeaviateClientFactory::class => function () {
+                return new WeaviateClientFactory();
             },
-            Factory\ConnectionFactory::class => function () {
-                return new Factory\ConnectionFactory();
+            ConnectionFactory::class => function () {
+                return new ConnectionFactory();
             },
-            Factory\AuthFactory::class => function () {
-                return new Factory\AuthFactory();
+            AuthFactory::class => function () {
+                return new AuthFactory();
             },
-            Factory\WeaviateClientAbstractFactory::class => function () {
-                return new Factory\WeaviateClientAbstractFactory();
+            WeaviateClientAbstractFactory::class => function () {
+                return new WeaviateClientAbstractFactory();
             },
         ];
     }
@@ -76,12 +99,12 @@ class ConfigProvider
         return [
             // Convenient aliases
             'WeaviateClient' => WeaviateClient::class,
-            'weaviate.client' => 'weaviate.client.default',
+            'weaviate.client' => 'weaviate.clients.default',
 
             // Factory aliases
-            'weaviate.factory.client' => Factory\WeaviateClientFactory::class,
-            'weaviate.factory.connection' => Factory\ConnectionFactory::class,
-            'weaviate.factory.auth' => Factory\AuthFactory::class,
+            'weaviate.factory.client' => WeaviateClientFactory::class,
+            'weaviate.factory.connection' => ConnectionFactory::class,
+            'weaviate.factory.auth' => AuthFactory::class,
         ];
     }
 
@@ -91,7 +114,7 @@ class ConfigProvider
     public function getAbstractFactories(): array
     {
         return [
-            Factory\WeaviateClientAbstractFactory::class,
+            WeaviateClientAbstractFactory::class,
         ];
     }
 
@@ -101,9 +124,8 @@ class ConfigProvider
     public function getWeaviateConfig(): array
     {
         return [
-            'factory_class' => Factory\WeaviateClientFactory::class,
-            'clients'       => [
-            ],
+            'factory_class' => WeaviateClientFactory::class,
+            'clients'       => [],
         ];
     }
 
@@ -135,27 +157,6 @@ class ConfigProvider
 
         // If no clients configuration, only 'default' is available
         return $clientName === 'default';
-    }
-
-    /**
-     * Get service names that can be created by this configuration.
-     */
-    public function getCreatableServiceNames(array $config): array
-    {
-        $clientNames = $this->getConfiguredClientNames($config);
-        $serviceNames = [];
-
-        // Add core services
-        $serviceNames[] = WeaviateClient::class;
-        $serviceNames[] = 'WeaviateClient';
-        $serviceNames[] = 'weaviate.client';
-
-        // Add named client services
-        foreach ($clientNames as $clientName) {
-            $serviceNames[] = "weaviate.client.{$clientName}";
-        }
-
-        return $serviceNames;
     }
 
     /**
@@ -215,7 +216,6 @@ class ConfigProvider
             'has_clients_config' => isset($weaviateConfig['clients']),
             'client_count' => count($clientNames),
             'client_names' => $clientNames,
-            'creatable_services' => $this->getCreatableServiceNames($config),
             'validation_errors' => $this->validateConfiguration($config),
         ];
     }

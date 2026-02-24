@@ -33,7 +33,7 @@ class WeaviateClientAbstractFactoryTest extends TestCase
             ->with($container, 'test-client')
             ->willReturn(true);
 
-        $result = $this->factory->canCreate($container, 'weaviate.client.test-client');
+        $result = $this->factory->canCreate($container, 'weaviate.clients.test-client');
 
         $this->assertTrue($result);
     }
@@ -57,7 +57,7 @@ class WeaviateClientAbstractFactoryTest extends TestCase
             ->with($container, 'nonexistent')
             ->willReturn(false);
 
-        $result = $this->factory->canCreate($container, 'weaviate.client.nonexistent');
+        $result = $this->factory->canCreate($container, 'weaviate.clients.nonexistent');
 
         $this->assertFalse($result);
     }
@@ -79,7 +79,7 @@ class WeaviateClientAbstractFactoryTest extends TestCase
             ->with($container, 'test-client')
             ->willReturn($expectedClient);
 
-        $result = $this->factory->__invoke($container, 'weaviate.client.test-client');
+        $result = $this->factory->__invoke($container, 'weaviate.clients.test-client');
 
         $this->assertSame($expectedClient, $result);
     }
@@ -95,9 +95,8 @@ class WeaviateClientAbstractFactoryTest extends TestCase
             ->willReturn(false);
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Weaviate client 'weaviate.client.invalid' not configured");
-
-        $this->factory->__invoke($container, 'weaviate.client.invalid');
+        $this->expectExceptionMessage("Weaviate client 'weaviate.clients.invalid' not configured");
+        $this->factory->__invoke($container, 'weaviate.clients.invalid');
     }
 
     public function testGetCreatableServiceNames(): void
@@ -112,13 +111,13 @@ class WeaviateClientAbstractFactoryTest extends TestCase
 
         $result = $this->factory->getCreatableServiceNames($container);
 
-        $expected = [
-            'weaviate.client.client1',
-            'weaviate.client.client2',
-            'weaviate.client.default',
-        ];
+            $expected = [
+                'weaviate.clients.client1',
+                'weaviate.clients.client2',
+                'weaviate.clients.default',
+            ];
 
-        $this->assertEquals($expected, $result);
+            $this->assertEquals($expected, $result);
     }
 
     public function testCanCreateClientService(): void
@@ -163,18 +162,18 @@ class WeaviateClientAbstractFactoryTest extends TestCase
     {
         $serviceName = WeaviateClientAbstractFactory::getServiceName('test-client');
 
-        $this->assertEquals('weaviate.client.test-client', $serviceName);
+        $this->assertEquals('weaviate.clients.test-client', $serviceName);
     }
 
     public function testIsClientServiceName(): void
     {
-        $this->assertTrue(WeaviateClientAbstractFactory::isClientServiceName('weaviate.client.test'));
+        $this->assertTrue(WeaviateClientAbstractFactory::isClientServiceName('weaviate.clients.test'));
         $this->assertFalse(WeaviateClientAbstractFactory::isClientServiceName('other.service.name'));
     }
 
     public function testExtractClientNameFromServiceName(): void
     {
-        $clientName = WeaviateClientAbstractFactory::extractClientNameFromServiceName('weaviate.client.test-client');
+        $clientName = WeaviateClientAbstractFactory::extractClientNameFromServiceName('weaviate.clients.test-client');
 
         $this->assertEquals('test-client', $clientName);
     }
@@ -239,12 +238,12 @@ class WeaviateClientAbstractFactoryTest extends TestCase
 
         $expected = [
             'client1' => [
-                'service_name' => 'weaviate.client.client1',
+                'service_name' => 'weaviate.clients.client1',
                 'can_create' => true,
                 'has_config' => true,
             ],
             'client2' => [
-                'service_name' => 'weaviate.client.client2',
+                'service_name' => 'weaviate.clients.client2',
                 'can_create' => false,
                 'has_config' => false,
             ],
@@ -281,7 +280,7 @@ class WeaviateClientAbstractFactoryTest extends TestCase
             ->with($container, 'test-client')
             ->willReturn($expectedClient);
 
-        $result = $this->factory->__invoke($container, 'weaviate.client.test-client', $options);
+        $result = $this->factory->__invoke($container, 'weaviate.clients.test-client', $options);
 
         $this->assertSame($expectedClient, $result);
     }

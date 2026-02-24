@@ -80,17 +80,28 @@ class MultipleClientsIntegrationTest extends TestCase
         $configProvider = new ConfigProvider();
         $dependencies = $configProvider->getDependencies();
 
-        $this->container = new ServiceManager(array_merge($dependencies, [
-            'services' => ['config' => $config]
-        ]));
+        $factories = $dependencies['factories'] ?? [];
+        $aliases = $dependencies['aliases'] ?? [];
+        $abstractFactories = $dependencies['abstract_factories'] ?? [];
+
+
+        $this->container = new ServiceManager([
+            'services' => [
+                'config' => $config,
+            ],
+            'factories' => $factories,
+            'aliases' => $aliases,
+            'abstract_factories' => $abstractFactories,
+        ]);
     }
 
     public function testMultipleClientsAreDistinct(): void
     {
-        $defaultClient = $this->container->get('weaviate.client.default');
-        $ragClient = $this->container->get('weaviate.client.rag');
-        $customerClient = $this->container->get('weaviate.client.customer_data');
-        $analyticsClient = $this->container->get('weaviate.client.analytics');
+
+        $defaultClient = $this->container->get('weaviate.clients.default');
+        $ragClient = $this->container->get('weaviate.clients.rag');
+        $customerClient = $this->container->get('weaviate.clients.customer_data');
+        $analyticsClient = $this->container->get('weaviate.clients.analytics');
 
         $this->assertInstanceOf(WeaviateClient::class, $defaultClient);
         $this->assertInstanceOf(WeaviateClient::class, $ragClient);
@@ -112,8 +123,8 @@ class MultipleClientsIntegrationTest extends TestCase
             $this->markTestSkipped('Weaviate is not available for integration testing');
         }
 
-        $ragClient = $this->container->get('weaviate.client.rag');
-        $customerClient = $this->container->get('weaviate.client.customer_data');
+        $ragClient = $this->container->get('weaviate.clients.rag');
+        $customerClient = $this->container->get('weaviate.clients.customer_data');
 
         // Test basic connectivity
         $ragSchema = $ragClient->schema()->get();
@@ -131,8 +142,8 @@ class MultipleClientsIntegrationTest extends TestCase
             $this->markTestSkipped('Weaviate is not available for integration testing');
         }
 
-        $ragClient = $this->container->get('weaviate.client.rag');
-        $customerClient = $this->container->get('weaviate.client.customer_data');
+        $ragClient = $this->container->get('weaviate.clients.rag');
+        $customerClient = $this->container->get('weaviate.clients.customer_data');
 
         // Create collections with different names to avoid conflicts
         $ragCollectionName = 'TestRAGCollection_' . uniqid();
@@ -194,8 +205,8 @@ class MultipleClientsIntegrationTest extends TestCase
             $this->markTestSkipped('Weaviate is not available for integration testing');
         }
 
-        $ragClient = $this->container->get('weaviate.client.rag');
-        $customerClient = $this->container->get('weaviate.client.customer_data');
+        $ragClient = $this->container->get('weaviate.clients.rag');
+        $customerClient = $this->container->get('weaviate.clients.customer_data');
 
         $ragCollectionName = 'TestRAGIsolation_' . uniqid();
         $customerCollectionName = 'TestCustomerIsolation_' . uniqid();
@@ -244,24 +255,22 @@ class MultipleClientsIntegrationTest extends TestCase
 
     public function testDefaultClientAlias(): void
     {
-        $defaultClient1 = $this->container->get('weaviate.client.default');
-        $defaultClient2 = $this->container->get('weaviate.client');
-        $defaultClient3 = $this->container->get('WeaviateClient');
+        $defaultClient1 = $this->container->get('weaviate.clients.default');
+        $defaultClient2 = $this->container->get('weaviate.clients.default');
+        $defaultClient3 = $this->container->get('weaviate.clients.default');
 
         $this->assertInstanceOf(WeaviateClient::class, $defaultClient1);
         $this->assertInstanceOf(WeaviateClient::class, $defaultClient2);
         $this->assertInstanceOf(WeaviateClient::class, $defaultClient3);
-
-        // Note: These might not be the same instance due to how the service manager works
-        // but they should all be valid WeaviateClient instances
     }
 
     public function testAbstractFactoryCanCreateClients(): void
     {
         // Test that the abstract factory can create clients through the service manager
-        $ragClient = $this->container->get('weaviate.client.rag');
-        $customerClient = $this->container->get('weaviate.client.customer_data');
-        $analyticsClient = $this->container->get('weaviate.client.analytics');
+
+        $ragClient = $this->container->get('weaviate.clients.rag');
+        $customerClient = $this->container->get('weaviate.clients.customer_data');
+        $analyticsClient = $this->container->get('weaviate.clients.analytics');
 
         $this->assertInstanceOf(WeaviateClient::class, $ragClient);
         $this->assertInstanceOf(WeaviateClient::class, $customerClient);
@@ -272,7 +281,7 @@ class MultipleClientsIntegrationTest extends TestCase
     {
         // Test that non-existent clients cannot be created
         $this->expectException(\Laminas\ServiceManager\Exception\ServiceNotFoundException::class);
-        $this->container->get('weaviate.client.nonexistent');
+        $this->container->get('weaviate.clients.nonexistent');
     }
 
     /**

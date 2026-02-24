@@ -49,12 +49,12 @@ class FactoryIntegrationTest extends TestCase
         $container = $this->createContainer($config);
 
         // Test canCreate
-        $this->assertTrue($this->abstractFactory->canCreate($container, 'weaviate.client.test-client'));
-        $this->assertFalse($this->abstractFactory->canCreate($container, 'weaviate.client.nonexistent'));
+        $this->assertTrue($this->abstractFactory->canCreate($container, 'weaviate.clients.test-client'));
+        $this->assertFalse($this->abstractFactory->canCreate($container, 'weaviate.clients.nonexistent'));
         $this->assertFalse($this->abstractFactory->canCreate($container, 'other.service.name'));
 
         // Test client creation through abstract factory
-        $client = $this->abstractFactory->__invoke($container, 'weaviate.client.test-client');
+        $client = $this->abstractFactory->__invoke($container, 'weaviate.clients.test-client');
         $this->assertInstanceOf(WeaviateClient::class, $client);
 
         // Test that the client is functional
@@ -64,19 +64,19 @@ class FactoryIntegrationTest extends TestCase
 
         // Test service names
         $serviceNames = $this->abstractFactory->getCreatableServiceNames($container);
-        $this->assertEquals(['weaviate.client.test-client'], $serviceNames);
+        $this->assertEquals(['weaviate.clients.test-client'], $serviceNames);
     }
 
     public function testUtilityMethods(): void
     {
         $this->assertEquals(
-            'weaviate.client.test-client',
+            'weaviate.clients.test-client',
             WeaviateClientAbstractFactory::getServiceName('test-client')
         );
-        $this->assertTrue(WeaviateClientAbstractFactory::isClientServiceName('weaviate.client.test-client'));
+        $this->assertTrue(WeaviateClientAbstractFactory::isClientServiceName('weaviate.clients.test-client'));
         $this->assertEquals(
             'test-client',
-            WeaviateClientAbstractFactory::extractClientNameFromServiceName('weaviate.client.test-client')
+            WeaviateClientAbstractFactory::extractClientNameFromServiceName('weaviate.clients.test-client')
         );
     }
 

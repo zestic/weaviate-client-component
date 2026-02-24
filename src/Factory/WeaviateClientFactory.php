@@ -23,9 +23,17 @@ class WeaviateClientFactory
     /**
      * Create the default WeaviateClient instance.
      */
-    public function __invoke(ContainerInterface $container): WeaviateClient
+    public function __invoke(ContainerInterface $container, string $clientClass): WeaviateClient
     {
-        return $this->createClient($container, 'default');
+        // Map the canonical class and its aliases to 'default'
+        if (
+            $clientClass === \Weaviate\WeaviateClient::class ||
+            $clientClass === 'WeaviateClient' ||
+            $clientClass === 'weaviate.client'
+        ) {
+            return $this->createClient($container, 'default');
+        }
+        return $this->createClient($container, $clientClass);
     }
 
     /**
@@ -34,7 +42,7 @@ class WeaviateClientFactory
     public function createClient(ContainerInterface $container, string $name = 'default'): WeaviateClient
     {
         $config = $container->get('config');
-        $weaviateConfig = $config['weaviate'] ?? [];
+        $weaviateConfig = $config['weaviate'];
 
         // Get client-specific configuration
         $clientConfig = $this->getClientConfig($weaviateConfig, $name);
@@ -172,10 +180,13 @@ class WeaviateClientFactory
 
     private function getClientConfig(array $weaviateConfig, string $name): array
     {
+        // If the name is prefixed with 'weaviate.clients.', strip it
+        if (str_starts_with($name, 'weaviate.clients.')) {
+            $name = substr($name, strlen('weaviate.clients.'));
+        }
         if (isset($weaviateConfig['clients'][$name])) {
             return $weaviateConfig['clients'][$name];
         }
-
         throw ConfigurationException::clientNotFound($name);
     }
 }

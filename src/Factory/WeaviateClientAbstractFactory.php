@@ -11,11 +11,11 @@ use Zestic\WeaviateClientComponent\Exception\ConfigurationException;
 /**
  * Abstract factory for dynamic WeaviateClient creation.
  *
- * Handles requests like 'weaviate.client.{name}' and creates the appropriate client instance.
+ * Handles requests like 'weaviate.clients.{name}' and creates the appropriate client instance.
  */
 class WeaviateClientAbstractFactory implements AbstractFactoryInterface
 {
-    private const CLIENT_PREFIX = 'weaviate.client.';
+    private const CLIENT_PREFIX = 'weaviate.clients.';
 
     public function __construct(
         private readonly WeaviateClientFactory $clientFactory = new WeaviateClientFactory()
@@ -27,14 +27,13 @@ class WeaviateClientAbstractFactory implements AbstractFactoryInterface
      */
     public function canCreate(ContainerInterface $container, string $requestedName): bool
     {
-        // Handle requests like 'weaviate.client.{name}'
+        // Handle requests like 'weaviate.clients.{name}'
         if (!str_starts_with($requestedName, self::CLIENT_PREFIX)) {
             return false;
         }
 
         $clientName = $this->extractClientName($requestedName);
-
-        // Check if client is configured
+        // Ensure only the client name (not the full service name) is passed
         return $this->clientFactory->hasClient($container, $clientName);
     }
 
@@ -51,7 +50,7 @@ class WeaviateClientAbstractFactory implements AbstractFactoryInterface
         }
 
         $clientName = $this->extractClientName($requestedName);
-
+        // Ensure only the client name (not the full service name) is passed
         return $this->clientFactory->createClient($container, $clientName);
     }
 

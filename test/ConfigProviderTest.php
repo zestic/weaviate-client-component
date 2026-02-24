@@ -62,8 +62,8 @@ class ConfigProviderTest extends TestCase
         $factories = $this->configProvider->getFactories();
 
         // Named client factories
-        $this->assertArrayHasKey('weaviate.client.default', $factories);
-        $this->assertEquals(WeaviateClientFactory::class, $factories['weaviate.client.default']);
+        $this->assertArrayHasKey('weaviate.clients.default', $factories);
+        $this->assertEquals(WeaviateClientFactory::class, $factories['weaviate.clients.default']);
     }
 
     public function testGetFactoriesIncludesFactoryServices(): void
@@ -85,7 +85,7 @@ class ConfigProviderTest extends TestCase
         $this->assertEquals(WeaviateClient::class, $aliases['WeaviateClient']);
 
         $this->assertArrayHasKey('weaviate.client', $aliases);
-        $this->assertEquals('weaviate.client.default', $aliases['weaviate.client']);
+        $this->assertEquals('weaviate.clients.default', $aliases['weaviate.client']);
     }
 
     public function testGetAliasesIncludesFactoryAliases(): void
@@ -200,8 +200,8 @@ class ConfigProviderTest extends TestCase
         $this->assertContains(WeaviateClient::class, $serviceNames);
         $this->assertContains('WeaviateClient', $serviceNames);
         $this->assertContains('weaviate.client', $serviceNames);
-        $this->assertContains('weaviate.client.default', $serviceNames);
-        $this->assertContains('weaviate.client.rag', $serviceNames);
+        $this->assertContains('weaviate.clients.default', $serviceNames);
+        $this->assertContains('weaviate.clients.rag', $serviceNames);
     }
 
     public function testValidateConfigurationWithValidConfig(): void

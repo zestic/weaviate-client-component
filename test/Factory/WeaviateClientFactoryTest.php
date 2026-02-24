@@ -41,7 +41,7 @@ class WeaviateClientFactoryTest extends TestCase
             ],
         ]);
 
-        $result = ($this->factory)($container);
+        $result = ($this->factory)($container, 'default');
 
         // Now we expect an actual WeaviateClient object
         $this->assertInstanceOf(\Weaviate\WeaviateClient::class, $result);

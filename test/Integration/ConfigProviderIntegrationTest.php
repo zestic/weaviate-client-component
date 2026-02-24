@@ -96,21 +96,21 @@ class ConfigProviderIntegrationTest extends TestCase
         $client = $minimalContainer->get(WeaviateClient::class);
         $this->assertInstanceOf(WeaviateClient::class, $client);
 
-        $defaultClient = $minimalContainer->get('weaviate.client.default');
+        $defaultClient = $minimalContainer->get('weaviate.clients.default');
         $this->assertInstanceOf(WeaviateClient::class, $defaultClient);
     }
 
     public function testServiceManagerCaching(): void
     {
-        $client1 = $this->container->get('weaviate.client.test_client');
-        $client2 = $this->container->get('weaviate.client.test_client');
+        $client1 = $this->container->get('weaviate.clients.test_client');
+        $client2 = $this->container->get('weaviate.clients.test_client');
 
         $this->assertSame($client1, $client2, 'Service manager should return the same instance for the same client');
     }
 
     public function testCustomClientClassIsInstantiated(): void
     {
-        $client = $this->container->get('weaviate.client.custom_class_client');
+        $client = $this->container->get('weaviate.clients.custom_class_client');
 
         $this->assertInstanceOf(TestWeaviateClient::class, $client);
     }
